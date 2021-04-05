@@ -118,9 +118,9 @@ install.packages("ggplot2")
 
 ```
 
-To look at what packages you have installed (and which have been preinstalled as part of you R download), do this:
+To look at what packages you have installed (and which have been pre-installed as part of you R download), do this:
 
-```{r, eval = FALSE}
+```{r}
 
 installed.packages()
 
@@ -146,19 +146,50 @@ Now let's install the packages we will use in the TUMI course. Generally, I reco
 
 ```{r, eval = FALSE}
 
+install.packages("ggplot2")
+
 ```
 
 Installing one at a time lets you easily identify if one package's installation has any errors, whereas this is harder to identify if all are run at once. That being said, you can install many at once like this:
 
 ```{r, eval = FALSE}
 
+install.packages(c("ggplot2","tidyverse"))
+
 ```
+
+You can also install particular versions of a package like this:
+
+```{r, eval = FALSE}
+
+BiocManager::install(version = '3.12')
+
+```
+
+Ok now let's actually install them! Copy and paste this into your RStudio console:
+
+```{r, eval = FALSE}
+
+install.packages(c("tidyverse","randomForest","ape","tictoc","pROC","readxl"))
+BiocManager::install(version = '3.12')
+BiocManager::install(c("dada2","phyloseq", "Biostrings","mixOmics"))
+
+
+```
+
+FYI the "tidyverse" packages is actually a collection of packages, including ggplot2, dplyr, tidyr, readr, purrr, tibble, stringr, and forcats.
+
+Keep any eye out for error messages. If you get any, ask for installation help and provide us with the following info:
+
+1. R version
+2. what did you try?
+3. what error message did you get?
 
 While I've got your attention, I think it's important to discuss how to cite packages! You wouldn't use a published protocol without citing it, so do the same with your computational work. To find the reference for an individual package, try this:
 
 ```{r}
 
-#citation("mixOmics")
+citation("mixOmics")
 
 ```
 
