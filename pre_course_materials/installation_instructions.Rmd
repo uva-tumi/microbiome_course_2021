@@ -1,0 +1,166 @@
+---
+title: "Installation instructions: 16S and metabolomics analyses"
+output: html_document
+author: Maureen Carey
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R - the language
+
+R is a statistical programming language that has been widely used by biologist and other applied scientists.
+
+Follow the instructions below. If you already use R, feel free to skip ahead to the [RStudio - a useful tool] or [R packages - the vocabulary] sections. Please note, however, that some packages may not be available with older R versions. If you encounter these issues, just update your R installation. ^[Instructions for [R - the language] and [RStudio - a useful tool] are adapted from the material provided by the [UTAustinX 'Foundations of Data Analysis' course](https://courses.edx.org/courses/UTAustinX/UT.7.01x/3T2014/56c5437b88fa43cf828bff5371c6a924/).] 
+
+#### Mac Users
+
+Installing R on a Mac:
+
+1. Open an internet browser and go to [www.r-project.org](https://www.r-project.org).
+2. Click the "download R" link under "Getting Started."
+3. Select a CRAN location (a mirror site) and click the corresponding link. I always use the University of Kansas mirror out of habit, but you can pick any! Because R is a free resource and so many people use it, mirroring is used to share resources (i.e servers).
+4. Click on the "Download R for (Mac) OS X" link at the top of the page.
+5. Click on the file containing the latest version of R under "Files." This will be at the top of the "Files" section.
+6. Save the .pkg file, double-click it to open, and follow the installation instructions.
+7. Move on to the [RStudio] section.
+
+#### Windows Users
+
+Installing R on a Windows machine:
+
+1. Open an internet browser and go to [www.r-project.org](https://www.r-project.org).
+2. Click the "download R" link under "Getting Started."
+3. Select a CRAN location (a mirror site) and click the corresponding link. I always use the University of Kansas mirror out of habit, but pick any! Because R is a free resource and so many people use it, mirroring is used to share resources (i.e servers). 
+4. Click on the "Download R for Windows" link at the top of the page.   
+5. Click on the "install R for the first time" link at the top of the page. This will be at the top of the "Files" section.
+6. Click "Download R for Windows" and save the executable file somewhere on your computer.  Run the .exe file and follow the installation instructions.  
+7. Move on to the [RStudio] section.
+
+## RStudio - a useful tool
+
+RStudio makes editing and running R code easier and we recommend you use it. RStudio is an integrated development environment (IDE) for R and enables you to write and execute code. Think of it like Microsoft Word: you don't *have* to write text documents in Word, but Word layers on many extra functions that make it easier to do so.
+
+#### Mac Users
+
+1. Go to [www.rstudio.com](https://www.rstudio.com) and click on the "Download" button at the very top of the blue banner.
+2. Click on "Download RStudio Desktop" (this is the free version for individual users).
+3. Click on the version recommended for your system, or the latest Mac version, save the .dmg file on your computer, double-click it to open, and then drag and drop it to your applications folder.
+
+#### Windows Users
+
+1. Go to [www.rstudio.com](https://www.rstudio.com) and click on the "Download" button at the very top of the blue banner.
+2. Click on "Download RStudio Desktop" (this is the free version for individual users).
+3. Click on the version recommended for your system, or the latest Windows version, and save the executable file. Run the .exe file and follow the installation instructions.    
+
+#### Using RStudio
+
+When you open RStudio, you will see something like this:
+
+![Screenshot of RStudio window](/users/mac9jc/Documents/work/TUMI/microbiome_course_2021/pre_course_materials/RStudio_image.png)
+
+If you don't see the top left panel, go to File > New File > R Script and then you will see all 4 quadrants of the window. The top left is a R script - where you can save your code into a file. The bottom left is the console. This is where you execute code (after the '>'). The top right panel will show you what variables are loaded into the environment. Try copying and pasting this code into the console and hitting enter:
+
+```{r, eval = FALSE}
+
+a = 1
+
+```
+
+Variable 'a' will now be in your environment!
+
+The bottom right panel is a workhorse - it may show folders on your computer, but it can also show you plots that you've made and help you access help pages for R and individual packages (more on those later). Try running this to see what happens when you querry the help pages for the term 'mean': 
+
+```{r, eval = FALSE}
+
+?? mean
+
+```
+
+## R packages - the vocabulary
+
+If R is a language and RStudio is your 'Word document' to communicate in that language, then R packages are new vocabulary. Yes, you could describe DNA as 'tiny chemicals that tell cells what they can do', but it's much more efficient to call it 'DNA.'
+
+R packages are developed by scientists and software developers to extend base R (the built-in vocabulary and functions) to more efficiently do additional tasks. This week we will use the following packages (in no particular order):
+
+* Packages for visualization:
+  + ggplot2
+* Packages for sequence analysis:
+  + DADA2
+* Packages for interpretive analyses:
+  + mixOmics
+  + randomForest
+  
+Well-established packages can be installed from one of two places, depending on where it is shared: 
+
+1. CRAN
+2. Bioconductor
+
+(Packages that are actively being developed may also be available via GitHub but we will not be using any of these this week.)
+
+Bioconductor packages tend to be more specific to biological applications (think: sequence analysis) whereas CRAN packages tend to be more field-independent (think: statistics or visualization).
+
+To install a Bioconductor package, you would use this format:
+
+```{r, eval = FALSE}
+
+source("https://bioconductor.org/biocLite.R")
+biocLite("limma")
+
+```
+
+To install a package from CRAN (which stands for ), you would use this format:
+
+```{r, eval = FALSE}
+
+install.packages("ggplot2")
+
+```
+
+To look at what packages you have installed (and which have been preinstalled as part of you R download), do this:
+
+```{r, eval = FALSE}
+
+installed.packages()
+
+```
+
+Packages only need to be installed before you use them for the first time. We've asked you to try these installations before the class starts! (Remember we will be available for installation support only on 04/09/2021.) Every time you use a package, however, you will need to 'load' it in for active use. Here is how you load a package:
+
+```{r, eval = FALSE}
+
+library("ggplot2")
+
+```
+
+Here's what it may look like if you load "ggplot2":
+
+```{r, eval = FALSE}
+
+library("ggplot2")
+
+```
+
+Now let's install the packages we will use in the TUMI course. Generally, I recommend you install one package at a time, like this:
+
+```{r, eval = FALSE}
+
+```
+
+Installing one at a time lets you easily identify if one package's installation has any errors, whereas this is harder to identify if all are run at once. That being said, you can install many at once like this:
+
+```{r, eval = FALSE}
+
+```
+
+While I've got your attention, I think it's important to discuss how to cite packages! You wouldn't use a published protocol without citing it, so do the same with your computational work. To find the reference for an individual package, try this:
+
+```{r}
+
+#citation("mixOmics")
+
+```
+
+You can also search R packages on [Google Scholar](https://scholar.google.com).
+
