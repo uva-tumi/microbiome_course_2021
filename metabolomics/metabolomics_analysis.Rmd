@@ -4,3 +4,214 @@ author: "Maureen Carey"
 date: "4/5/2021"
 output: html_document
 ---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Summary of experiment (from the scientists)
+
+Maize seeds were inoculated with either water or *Pseudomonas fluorescens* in three separate experiments and allowed to germinate.  Seeds treated with the bacteria showed a difference in both root and shoot growth. The root tissues were extracted by grinding with liquid nitrogen and stored for future use in untargeted metabolomics experiment.  
+
+Our main aim for this experiment was to understand metabolomic changes in roots treated either with water or with suspension of *P.fluorescens*.
+
+In this experiment, we ran 5 replicates of the mock treatment and 4 replicates of PF treated roots. A pooled quality control sample was created after the extraction by aliquoting 10 uL of metabolite extract from each sample for identification and quality control.
+
+
+# Prep computational environment
+
+```{r}
+
+library(randomForest)
+library(pROC)
+library(readxl)
+
+# experiment metadata
+metadata = read_excel("~/Documents/work/TUMI/microbiome_course_2021/metabolomics/processed_metabolomics_data.xlsx", sheet = "sampleMetadata")
+# mass spec results (Note: Nishikant Wase's previous day of workshops generated this file from the raw spectra)
+df = read_excel("~/Documents/work/TUMI/microbiome_course_2021/metabolomics/processed_metabolomics_data.xlsx", sheet = "FilteredDataMatrix")
+
+```
+
+# Start data preprocessing
+
+Link metabolomics data with sample group.
+
+```{r}
+
+# looks at column names in data
+colnames(df)
+# separate metabolite information from metabolite abundances
+met_abund = df[,colnames(df) %in% c("Alignment ID","x01222021x_blank1","x01222021x_blank2",
+                                      "x01222021x_Met_Mock_R1","x01222021x_Met_Mock_R2","x01222021x_Met_Mock_R3","x01222021x_Met_Mock_R4","x01222021x_Met_Mock_R5",
+                                      "x01222021x_Met_PF_R2","x01222021x_Met_PF_R3","x01222021x_Met_PF_R4","x01222021x_Met_PF_R6",
+                                      "x01222021x_Met_pooled_QC1","x01222021x_Met_pooled_QC2","x01222021x_Met_pooled_QC3","x01222021x_Met_pooled_QC4")]
+met_info = df[,!(colnames(df) %in% c("Alignment ID","x01222021x_blank1","x01222021x_blank2",
+                                      "x01222021x_Met_Mock_R1","x01222021x_Met_Mock_R2","x01222021x_Met_Mock_R3","x01222021x_Met_Mock_R4","x01222021x_Met_Mock_R5",
+                                      "x01222021x_Met_PF_R2","x01222021x_Met_PF_R3","x01222021x_Met_PF_R4","x01222021x_Met_PF_R6",
+                                      "x01222021x_Met_pooled_QC1","x01222021x_Met_pooled_QC2","x01222021x_Met_pooled_QC3","x01222021x_Met_pooled_QC4"))]
+# merge metabolite abundances with metadata file to ID groups
+
+
+```
+
+Prune metabolites that are below the limit of detection for >50% of a sample group 
+
+```{r}
+
+
+```
+
+On to our analyses!
+
+# Plot the data
+
+I always like to take a look at the data before I get started. This will clue you in to any potential challenges that may arise or any issues you need to correct (i.e. do you have sufficient N to detect a difference in sample groups? is there an outlier that you want to follow up on?)
+
+## Principle coordinate analysis
+
+
+
+```{r}
+
+
+```
+
+# Perform univariate statistics
+
+## Prep the dataset
+
+```{r}
+
+
+```
+
+## Don't forget multiple testing correction!
+
+# Perform multivariate statistics
+
+## Prep the dataset
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
+
+# Perform machine learning
+
+## Prep the dataset
+
+Split into training and test sets. Even though random forest is an internally validated (i.e. it performs a training and test split for every tree), it is still important to split your data into a training and test dataset to validate the model and to avoid overfitting. This can only be performed if you have sufficient N.
+
+```{r}
+
+# Set random seed (otherwise random splits will be irreproducibly random!)
+set.seed(2021)
+# Generate a random sample with half of the dataset
+indexes = sample(1:nrow(iris), size = floor(nrow(iris)/2))
+# Split into training and test sets
+training = iris[indexes,]
+test = iris[-indexes,]
+
+y = df$y
+
+```
+
+Build training model.
+
+```{r}
+
+rf_classifier = randomForest(Species ~ ., data=training, ntree=100, mtry=2, importance=TRUE)
+
+```
+
+
+Look at model performance on the training dataset. How well does the model correctly label samples?
+
+```{r}
+
+# Validation set assessment #1: looking at confusion matrix
+prediction_for_table = predict(rf_classifier, training[,-5], type = "class") #training[,-5] to remove y var
+table(observed=training[,5],predicted=prediction_for_table)
+
+```
+
+Look at model performance on the testing dataset. How well does the model correctly label samples?
+
+```{r}
+
+# Validation set assessment #1: looking at confusion matrix
+prediction_for_table <- predict(rf_classifier, test[,-5], type = "class")
+table(observed=test[,5],predicted=prediction_for_table)
+
+
+predictions = as.data.frame(predict(rf_classifier,type="prob"))
+predictions$predict = names(predictions)[1:3][apply(predictions[,1:2], 1, which.max)]
+predictions$observed = test[,5]
+  
+```
+
+ROC - define - can only do for 2 level classifier
+
+
+```{r}
+
+ROC_val = roc(ifelse(predictions$observed=='setosa', 'setosa', 'other'), as.numeric(predictions$setosa))
+
+  
+```
+
+AUC - define
+
+```{r}
+
+AUC_val = auc(ROC_val)
+  
+```
+
+
+ROC curve
+
+```{r}
+
+pROC::ggroc(c(ROC_val), aes = "colour") + 
+  theme_bw() +
+  geom_segment(aes(x = 1, xend = 0, y = 0, yend = 1), color="grey", linetype="dashed") +
+  scale_color_manual(values = c("blue","red"), guide = F) + 
+  theme(plot.margin=unit(c(.5,.5,.5,.5),"cm"),
+        legend.title = element_blank()) +
+  annotate("text", label = paste0("TOD AUC = ",round(AUC_TOD, digits = 2)), x = .25, y = .27, color = "blue") +
+  annotate("text", label = paste0("PD AUC = ",round(AUC_PD, digits = 2)), x = .25, y = .13, color = "red") 
+
+```
+
+Calculate the AUC, or area-under-the-curve.
+
+```{r}
+
+```
+
+Look at most important variables. 
+
+MeanDecreaseAccuracy is a metric of variable important and tells you the effect of removing a variable on model performance. MeanDecreaseGini is another (more complex) metric of variable importance and quantifies the measure of 'node impurity.' This evaluates how well a variable splits your classification groups.
+
+```{r}
+
+varImpPlot(rf_classifier)
+
+```
+
+
+```{r}
+
+```
+
+```{r}
+
+```
