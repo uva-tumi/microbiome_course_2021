@@ -1,7 +1,9 @@
 ---
-title: "Installation instructions: 16S and metabolomics analyses"
-output: html_document
-author: Maureen Carey
+title: 'Installation instructions: 16S and metabolomics analyses'
+author: "Maureen Carey"
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -35,7 +37,7 @@ Installing R on a Windows machine:
 3. Select a CRAN location (a mirror site) and click the corresponding link. I always use the University of Kansas mirror out of habit, but pick any! Because R is a free resource and so many people use it, mirroring is used to share resources (i.e servers). 
 4. Click on the "Download R for Windows" link at the top of the page.   
 5. Click on the "install R for the first time" link at the top of the page. This will be at the top of the "Files" section.
-6. Click "Download R for Windows" and save the executable file somewhere on your computer.  Run the .exe file and follow the installation instructions.  
+6. Click "Download R for Windows" and save the executable file somewhere on your computer.  Run the .exe file and follow the installation instructions.
 7. Move on to the [RStudio - a useful tool] section.
 
 ## RStudio - a useful tool
@@ -58,7 +60,7 @@ RStudio makes editing and running R code easier and we recommend you use it. RSt
 
 When you open RStudio, you will see something like this:
 
-![Screenshot of RStudio window](/Users/mac9jc/Documents/work/TUMI/microbiome_course_2021/pre_course_materials/RStudio_image.png)
+![Screenshot of RStudio window](/Users/maureencarey/local_documents/work/TUMI_efforts/microbiome_course_2021/pre_course_materials/RStudio_image.png)
 
 If you don't see the top left panel, go to File > New File > R Script and then you will see all 4 quadrants of the window. The top left is a R script - where you can save your code into a file. The bottom left is the console. This is where you execute code (after the '>'). The top right panel will show you what variables are loaded into the environment. Try copying and pasting this code into the console and hitting enter:
 
@@ -185,7 +187,9 @@ Ok now let's actually install them! Copy and paste this into your RStudio consol
 
 install.packages("BiocManager")
 BiocManager::install(version = '3.12')
-BiocManager::install(c("dada2","phyloseq","Biostrings","mixOmics","tidyverse","randomForest","ape","tictoc","pROC","readxl","ggpubr","vegan"))
+BiocManager::install(c("dada2","phyloseq","Biostrings","mixOmics",
+                       "tidyverse","randomForest","ape","tictoc",
+                       "pROC","readxl","ggpubr","vegan"))
 
 
 ```
@@ -214,7 +218,7 @@ library("package_name")
 
 While I've got your attention, I think it's important to discuss how to cite packages! You wouldn't use a published protocol without citing it, so do the same with your computational work. To find the reference for an individual package, try this:
 
-```{r}
+```{r, eval = FALSE}
 
 citation("mixOmics")
 
