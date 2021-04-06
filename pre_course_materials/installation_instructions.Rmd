@@ -58,7 +58,7 @@ RStudio makes editing and running R code easier and we recommend you use it. RSt
 
 When you open RStudio, you will see something like this:
 
-![Screenshot of RStudio window](/users/mac9jc/Documents/work/TUMI/microbiome_course_2021/pre_course_materials/RStudio_image.png)
+![Screenshot of RStudio window](/Users/mac9jc/Documents/work/TUMI/microbiome_course_2021/pre_course_materials/RStudio_image.png)
 
 If you don't see the top left panel, go to File > New File > R Script and then you will see all 4 quadrants of the window. The top left is a R script - where you can save your code into a file. The bottom left is the console. This is where you execute code (after the '>'). The top right panel will show you what variables are loaded into the environment. Try copying and pasting this code into the console and hitting enter:
 
@@ -170,7 +170,7 @@ Ok now let's actually install them! Copy and paste this into your RStudio consol
 
 ```{r, eval = FALSE}
 
-install.packages(c("tidyverse","randomForest","ape","tictoc","pROC","readxl"))
+install.packages(c("tidyverse","randomForest","ape","tictoc","pROC","readxl","ggpubr"))
 BiocManager::install(version = '3.12')
 BiocManager::install(c("dada2","phyloseq", "Biostrings","mixOmics"))
 

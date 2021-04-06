@@ -8,9 +8,10 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = '~/Documents/work/TUMI/microbiome_course_2021/')
 ```
 
-# Summary of experiment (from the scientists)
+# Summary of experiment (from the scientists)^[Data were provided by Nishikant Wase and preprocessed on the previous day of this workshop. Data are unpublish.]
 
 Maize seeds were inoculated with either water or *Pseudomonas fluorescens* in three separate experiments and allowed to germinate.  Seeds treated with the bacteria showed a difference in both root and shoot growth. The root tissues were extracted by grinding with liquid nitrogen and stored for future use in untargeted metabolomics experiment.  
 
@@ -23,20 +24,22 @@ In this experiment, we ran 5 replicates of the mock treatment and 4 replicates o
 
 ```{r}
 
+library(tidyverse)
 library(randomForest)
 library(pROC)
 library(readxl)
+library(ggpubr)
 
 # experiment metadata
-metadata = read_excel("~/Documents/work/TUMI/microbiome_course_2021/metabolomics/processed_metabolomics_data.xlsx", sheet = "sampleMetadata")
+metadata = read_excel("./metabolomics/processed_metabolomics_data.xlsx", sheet = "sampleMetadata")
 # mass spec results (Note: Nishikant Wase's previous day of workshops generated this file from the raw spectra)
-df = read_excel("~/Documents/work/TUMI/microbiome_course_2021/metabolomics/processed_metabolomics_data.xlsx", sheet = "FilteredDataMatrix")
+df = read_excel("./metabolomics/processed_metabolomics_data.xlsx", sheet = "FilteredDataMatrix")
 
 ```
 
 # Start data preprocessing
 
-Link metabolomics data with sample group.
+Look at metabolomics data for each sample group.
 
 ```{r}
 
@@ -47,21 +50,41 @@ met_abund = df[,colnames(df) %in% c("Alignment ID","x01222021x_blank1","x0122202
                                       "x01222021x_Met_Mock_R1","x01222021x_Met_Mock_R2","x01222021x_Met_Mock_R3","x01222021x_Met_Mock_R4","x01222021x_Met_Mock_R5",
                                       "x01222021x_Met_PF_R2","x01222021x_Met_PF_R3","x01222021x_Met_PF_R4","x01222021x_Met_PF_R6",
                                       "x01222021x_Met_pooled_QC1","x01222021x_Met_pooled_QC2","x01222021x_Met_pooled_QC3","x01222021x_Met_pooled_QC4")]
-met_info = df[,!(colnames(df) %in% c("Alignment ID","x01222021x_blank1","x01222021x_blank2",
+met_info = df[,!(colnames(df) %in% c("x01222021x_blank1","x01222021x_blank2",
                                       "x01222021x_Met_Mock_R1","x01222021x_Met_Mock_R2","x01222021x_Met_Mock_R3","x01222021x_Met_Mock_R4","x01222021x_Met_Mock_R5",
                                       "x01222021x_Met_PF_R2","x01222021x_Met_PF_R3","x01222021x_Met_PF_R4","x01222021x_Met_PF_R6",
                                       "x01222021x_Met_pooled_QC1","x01222021x_Met_pooled_QC2","x01222021x_Met_pooled_QC3","x01222021x_Met_pooled_QC4"))]
-# merge metabolite abundances with metadata file to ID groups
-
+# identify sample groups
+grps = c("blank","blank",
+         "Mock","Mock","Mock","Mock","Mock",
+         "PF","PF","PF","PF",
+         "pooledQC","pooledQC","pooledQC","pooledQC")
+names(grps) = c("x01222021x_blank1","x01222021x_blank2",
+                "x01222021x_Met_Mock_R1","x01222021x_Met_Mock_R2","x01222021x_Met_Mock_R3","x01222021x_Met_Mock_R4","x01222021x_Met_Mock_R5",
+                "x01222021x_Met_PF_R2","x01222021x_Met_PF_R3","x01222021x_Met_PF_R4","x01222021x_Met_PF_R6",
+                "x01222021x_Met_pooled_QC1","x01222021x_Met_pooled_QC2","x01222021x_Met_pooled_QC3","x01222021x_Met_pooled_QC4")
 
 ```
 
-Prune metabolites that are below the limit of detection for >50% of a sample group 
+Double check missing values have been removed/imputed.
 
 ```{r}
 
+min(met_abund[,-1])>0
 
 ```
+
+What would happen if there were 'NA's indicating missing values in the dataset? Try testing this:
+
+```{r, eval = FALSE }
+
+min(c(1,2,NA))
+
+```
+
+Ok, so missing values have been eliminated by removing metabolites that were frequently below the limit of detection and/or imputation. 
+
+------
 
 On to our analyses!
 
@@ -69,9 +92,101 @@ On to our analyses!
 
 I always like to take a look at the data before I get started. This will clue you in to any potential challenges that may arise or any issues you need to correct (i.e. do you have sufficient N to detect a difference in sample groups? is there an outlier that you want to follow up on?)
 
-## Principle coordinate analysis
+## Basic plotting
 
+For example, let's say you knew Alignment ID 969 was interesting based on previous experiments. What metabolite does Alignment ID 969 represent?
 
+```{r}
+
+interesting_met = met_info[met_info$`Alignment ID` == 969,] %>% pull(`Metabolite name`)
+
+interesting_met
+
+```
+
+Now let's see the relative abundance of `r interesting_met` in each group.
+
+```{r}
+
+# extract metabolite 969 from dataset
+interesting_met_abund = met_abund[met_abund$`Alignment ID` == 969,]
+# remove column with Alignment ID, since we only have one left in our dataset
+interesting_met_abund$`Alignment ID` = NULL
+# merge metabolite abundance with group names
+interesting_met_abund_w_grps = rbind(interesting_met_abund, grps)
+# flip dataframe for easier plotting
+df_to_plot = as.data.frame(t(interesting_met_abund_w_grps))
+# add column headers for easier data access
+colnames(df_to_plot) = c('metabolite_abundance', 'group')
+# make sure the abundances are read as numbers not as text
+df_to_plot$metabolite_abundance = as.numeric(df_to_plot$metabolite_abundance)
+
+# plot
+ggplot(data = df_to_plot, aes(x = group, y = metabolite_abundance, color = group)) + # set variables
+  geom_boxplot() + # make it a boxplot
+  geom_point(size = 4) + # add points
+  guides(color = F) # hide legend
+  
+
+```
+
+By eye, it looks like there may not be a difference in `r interesting_met` between the infected (PF) group and the mock treated group, especially since this metabolite can be detected at similar levels in the blank sample. However, performing a statistical test would give us higher confidence in this conclusion. Here's one way we can do this:
+
+```{r}
+
+group_options = unique(df_to_plot$group)
+my_comparisons <- list(c(group_options[1], group_options[2]), 
+                       c(group_options[1], group_options[3]),
+                       c(group_options[2], group_options[3]))
+
+# remake previous figure
+p = ggplot(data = df_to_plot, aes(x = group, y = metabolite_abundance, color = group)) + 
+  geom_boxplot() + 
+  geom_point(size = 4) +
+  guides(color = F)
+# add statistics 
+p + stat_compare_means(comparisons = my_comparisons, size = 3, method = 't.test')
+
+```
+
+A t-test confirms that there is no meaningful difference in `r interesting_met` in this study.
+
+FYI, the function we just used to perform a t.test ('stat_compare_means') does not do multiple testing corrections. We will discuss that later!
+
+------
+
+CHANGE THIS TEXT
+Next, let's see if yesterday's normalization efforts worked. We'd expect to see a similar range of metabolite abundances in all sample groups. A histogram would be useful for this purpose.
+
+```{r}
+
+# remove Alignment ID column
+met_abund_temp = met_abund
+met_abund_temp$`Alignment ID` = NULL
+# merge metabolite abundance with group names
+met_abund_w_grps = rbind(grps,met_abund_temp)
+# flip dataframe for easier plotting
+df_to_plot = as.data.frame(t(met_abund_w_grps))
+# add column headers for easier data access
+colnames(df_to_plot)[1] = 'group'
+# reorganize data
+df_to_plot = tidyr::pivot_longer(df_to_plot, !group, names_to = "metabolite", values_to = "abundance")
+# make sure the abundances are read as numbers not as text
+df_to_plot$abundance = as.numeric(df_to_plot$abundance)
+
+ggplot(data = df_to_plot, aes(x = abundance, fill = group)) +
+  geom_histogram(bins = 100) + scale_x_sqrt() +
+  facet_wrap(~group) + guides(fill = F)
+
+```
+
+PS - Have questions about that 'pivot_longer' step? Check this out:^[from https://fromthebottomoftheheap.net/2019/10/25/pivoting-tidily/]
+
+![this is the concept behind pivoting - a way to restructure data for (sometimes) easier plotting](/Users/mac9jc/Documents/work/TUMI/microbiome_course_2021/metabolomics/tidyr-longer-wider.gif)
+
+## Principal component analysis
+
+One of my favorite tools to use before digging into specific analysis is principal component analysis. High dimensional data is often defined as datasets that have more variables than observations (e.g. more metabolites than samples). It is challenging to use many simple statistical methods with these datasets, so dimensionality reduction is a useful tool. I recommend you read [this paper](https://www.nature.com/articles/nrm2041) to better understand dimensionality reduction.
 
 ```{r}
 
@@ -180,14 +295,14 @@ ROC curve
 
 ```{r}
 
-pROC::ggroc(c(ROC_val), aes = "colour") + 
-  theme_bw() +
-  geom_segment(aes(x = 1, xend = 0, y = 0, yend = 1), color="grey", linetype="dashed") +
-  scale_color_manual(values = c("blue","red"), guide = F) + 
-  theme(plot.margin=unit(c(.5,.5,.5,.5),"cm"),
-        legend.title = element_blank()) +
-  annotate("text", label = paste0("TOD AUC = ",round(AUC_TOD, digits = 2)), x = .25, y = .27, color = "blue") +
-  annotate("text", label = paste0("PD AUC = ",round(AUC_PD, digits = 2)), x = .25, y = .13, color = "red") 
+# ggroc(list(ROC_val), aes = "colour") + 
+#   theme_bw() +
+#   geom_segment(aes(x = 1, xend = 0, y = 0, yend = 1), color="grey", linetype="dashed") +
+#   scale_color_manual(values = c("blue","red"), guide = F) + 
+#   theme(plot.margin=unit(c(.5,.5,.5,.5),"cm"),
+#         legend.title = element_blank()) +
+#   annotate("text", label = paste0("TOD AUC = ",round(AUC_TOD, digits = 2)), x = .25, y = .27, color = "blue") +
+#   annotate("text", label = paste0("PD AUC = ",round(AUC_PD, digits = 2)), x = .25, y = .13, color = "red") 
 
 ```
 
