@@ -24,7 +24,7 @@ Installing R on a Mac:
 4. Click on the "Download R for (Mac) OS X" link at the top of the page.
 5. Click on the file containing the latest version of R under "Files." This will be at the top of the "Files" section.
 6. Save the .pkg file, double-click it to open, and follow the installation instructions.
-7. Move on to the [RStudio] section.
+7. Move on to the [RStudio - a useful tool] section.
 
 #### Windows Users
 
@@ -36,7 +36,7 @@ Installing R on a Windows machine:
 4. Click on the "Download R for Windows" link at the top of the page.   
 5. Click on the "install R for the first time" link at the top of the page. This will be at the top of the "Files" section.
 6. Click "Download R for Windows" and save the executable file somewhere on your computer.  Run the .exe file and follow the installation instructions.  
-7. Move on to the [RStudio] section.
+7. Move on to the [RStudio - a useful tool] section.
 
 ## RStudio - a useful tool
 
@@ -82,16 +82,33 @@ The bottom right panel is a workhorse - it may show folders on your computer, bu
 
 If R is a language and RStudio is your 'Word document' to communicate in that language, then R packages are new vocabulary. Yes, you could describe DNA as 'tiny chemicals that tell cells what they can do', but it's much more efficient to call it 'DNA.'
 
-R packages are developed by scientists and software developers to extend base R (the built-in vocabulary and functions) to more efficiently do additional tasks. This week we will use the following packages (in no particular order):
+R packages are developed by scientists and software developers to extend base R (the built-in vocabulary and functions) to more efficiently do additional tasks. 
 
-* Packages for visualization:
-  + ggplot2
+#### Packages for the TUMI course
+
+This week we will use the following packages (in no particular order):
+
+* Packages for visualization/data wrangling:
+  + tidyverse
+  + ggpubr
 * Packages for sequence analysis:
   + DADA2
+  + phyloseq
+  + Biostrings
 * Packages for interpretive analyses:
   + mixOmics
   + randomForest
+  + ape
+  + vegan
+  + pROC
+* Other packages:
+  + readxl
+  + tictoc
   
+The end of this document provides step-by-step directions.
+  
+#### How do I find and install R packages? 
+
 Well-established packages can be installed from one of two places, depending on where it is shared: 
 
 1. CRAN
@@ -106,11 +123,11 @@ To install a Bioconductor package, you would use this format:
 ```{r, eval = FALSE}
 
 source("https://bioconductor.org/biocLite.R")
-biocLite("limma")
+biocLite("dada2")
 
 ```
 
-To install a package from CRAN (which stands for ), you would use this format:
+To install a package from CRAN (which stands for the "Comprehensive R Archive Network"), you would use this format:
 
 ```{r, eval = FALSE}
 
@@ -118,13 +135,23 @@ install.packages("ggplot2")
 
 ```
 
+Fortunately, there is an approach that let's you install any of these packages without having to know where they came from:
+
+```{r, eval = FALSE}
+
+BiocManager::install(c("dada2","ggplot2"))
+
+```
+
 To look at what packages you have installed (and which have been pre-installed as part of you R download), do this:
 
-```{r}
+```{r, eval = FALSE}
 
 installed.packages()
 
 ```
+
+(I have a LOT - pages and pages - so I am not going to show my results.)
 
 Packages only need to be installed before you use them for the first time. We've asked you to try these installations before the class starts! (Remember we will be available for installation support only on 04/09/2021.) Every time you use a package, however, you will need to 'load' it in for active use. Here is how you load a package:
 
@@ -134,15 +161,7 @@ library("ggplot2")
 
 ```
 
-Here's what it may look like if you load "ggplot2":
-
-```{r, eval = FALSE}
-
-library("ggplot2")
-
-```
-
-Now let's install the packages we will use in the TUMI course. Generally, I recommend you install one package at a time, like this:
+Generally, I recommend you install one package at a time, like this:
 
 ```{r, eval = FALSE}
 
@@ -158,24 +177,22 @@ install.packages(c("ggplot2","tidyverse"))
 
 ```
 
-You can also install particular versions of a package like this:
-
-```{r, eval = FALSE}
-
-BiocManager::install(version = '3.12')
-
-```
+#### TL;DR Installation instructions for the TUMI course
 
 Ok now let's actually install them! Copy and paste this into your RStudio console:
 
 ```{r, eval = FALSE}
 
-install.packages(c("tidyverse","randomForest","ape","tictoc","pROC","readxl","ggpubr"))
+install.packages("BiocManager")
 BiocManager::install(version = '3.12')
-BiocManager::install(c("dada2","phyloseq", "Biostrings","mixOmics"))
+BiocManager::install(c("dada2","phyloseq","Biostrings","mixOmics","tidyverse","randomForest","ape","tictoc","pROC","readxl","ggpubr","vegan"))
 
 
 ```
+
+You may be asked, "Update all/some/none? [a/s/n]:" Please enter "a" to indicate that R can install/update any necessary packages used by the packages you are actively installing.
+
+Additionally, you may be asked, "Do you want to install from sources the package which needs compilation? (Yes/no/cancel)". You can again enable this by typing "yes".
 
 FYI the "tidyverse" packages is actually a collection of packages, including ggplot2, dplyr, tidyr, readr, purrr, tibble, stringr, and forcats.
 
@@ -184,6 +201,16 @@ Keep any eye out for error messages. If you get any, ask for installation help a
 1. R version
 2. what did you try?
 3. what error message did you get?
+
+I recommend testing your installations by loading each package BEFORE the course begins. Again, to load a package, you enter the following line in the console of your RStudio window for each package:
+
+```{r, eval = FALSE}
+
+library("package_name")
+
+```
+
+#### One last comment
 
 While I've got your attention, I think it's important to discuss how to cite packages! You wouldn't use a published protocol without citing it, so do the same with your computational work. To find the reference for an individual package, try this:
 
@@ -194,4 +221,6 @@ citation("mixOmics")
 ```
 
 You can also search R packages on [Google Scholar](https://scholar.google.com).
+
+## See you next week!
 
