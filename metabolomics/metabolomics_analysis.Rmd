@@ -11,13 +11,13 @@ knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_knit$set(root.dir = '~/Documents/work/TUMI/microbiome_course_2021/')
 ```
 
-# Summary of experiment (from the scientists)^[Data were provided by Nishikant Wase and preprocessed on the previous day of this workshop. Data are unpublish.]
+# Summary of experiment (from the scientists)^[Data were provided by Nishikant Wase and preprocessed on the previous day of this workshop. Data are unpublished.]
 
 Maize seeds were inoculated with either water or *Pseudomonas fluorescens* in three separate experiments and allowed to germinate.  Seeds treated with the bacteria showed a difference in both root and shoot growth. The root tissues were extracted by grinding with liquid nitrogen and stored for future use in untargeted metabolomics experiment.  
 
 Our main aim for this experiment was to understand metabolomic changes in roots treated either with water or with suspension of *P.fluorescens*.
 
-In this experiment, we ran 5 replicates of the mock treatment and 4 replicates of PF treated roots. A pooled quality control sample was created after the extraction by aliquoting 10 uL of metabolite extract from each sample for identification and quality control.
+In this experiment, we ran 5 replicates of the mock treatment and 4 replicates of PF treated roots. A pooled quality control sample was created after the extraction by aliquoting 10 uL of metabolite extract from each sample for identification and quality control. Blank samples are 0.1% Formic acid in water. 
 
 
 # Prep computational environment
@@ -29,6 +29,7 @@ library(randomForest)
 library(pROC)
 library(readxl)
 library(ggpubr)
+library(vegan)
 
 # experiment metadata
 metadata = read_excel("./metabolomics/processed_metabolomics_data.xlsx", sheet = "sampleMetadata")
@@ -46,23 +47,33 @@ Look at metabolomics data for each sample group.
 # looks at column names in data
 colnames(df)
 # separate metabolite information from metabolite abundances
-met_abund = df[,colnames(df) %in% c("Alignment ID","x01222021x_blank1","x01222021x_blank2",
-                                      "x01222021x_Met_Mock_R1","x01222021x_Met_Mock_R2","x01222021x_Met_Mock_R3","x01222021x_Met_Mock_R4","x01222021x_Met_Mock_R5",
-                                      "x01222021x_Met_PF_R2","x01222021x_Met_PF_R3","x01222021x_Met_PF_R4","x01222021x_Met_PF_R6",
-                                      "x01222021x_Met_pooled_QC1","x01222021x_Met_pooled_QC2","x01222021x_Met_pooled_QC3","x01222021x_Met_pooled_QC4")]
+met_abund = df[,colnames(df) %in% c("Alignment ID",
+                                    "x01222021x_blank1","x01222021x_blank2",
+                                    "x01222021x_Met_Mock_R1","x01222021x_Met_Mock_R2",
+                                    "x01222021x_Met_Mock_R3","x01222021x_Met_Mock_R4","x01222021x_Met_Mock_R5",
+                                    "x01222021x_Met_PF_R2","x01222021x_Met_PF_R3",
+                                    "x01222021x_Met_PF_R4","x01222021x_Met_PF_R6",
+                                    "x01222021x_Met_pooled_QC1","x01222021x_Met_pooled_QC2",
+                                    "x01222021x_Met_pooled_QC3","x01222021x_Met_pooled_QC4")]
 met_info = df[,!(colnames(df) %in% c("x01222021x_blank1","x01222021x_blank2",
-                                      "x01222021x_Met_Mock_R1","x01222021x_Met_Mock_R2","x01222021x_Met_Mock_R3","x01222021x_Met_Mock_R4","x01222021x_Met_Mock_R5",
-                                      "x01222021x_Met_PF_R2","x01222021x_Met_PF_R3","x01222021x_Met_PF_R4","x01222021x_Met_PF_R6",
-                                      "x01222021x_Met_pooled_QC1","x01222021x_Met_pooled_QC2","x01222021x_Met_pooled_QC3","x01222021x_Met_pooled_QC4"))]
+                                     "x01222021x_Met_Mock_R1","x01222021x_Met_Mock_R2",
+                                     "x01222021x_Met_Mock_R3","x01222021x_Met_Mock_R4","x01222021x_Met_Mock_R5",
+                                     "x01222021x_Met_PF_R2","x01222021x_Met_PF_R3",
+                                     "x01222021x_Met_PF_R4","x01222021x_Met_PF_R6",
+                                     "x01222021x_Met_pooled_QC1","x01222021x_Met_pooled_QC2",
+                                     "x01222021x_Met_pooled_QC3","x01222021x_Met_pooled_QC4"))]
 # identify sample groups
 grps = c("blank","blank",
          "Mock","Mock","Mock","Mock","Mock",
          "PF","PF","PF","PF",
          "pooledQC","pooledQC","pooledQC","pooledQC")
 names(grps) = c("x01222021x_blank1","x01222021x_blank2",
-                "x01222021x_Met_Mock_R1","x01222021x_Met_Mock_R2","x01222021x_Met_Mock_R3","x01222021x_Met_Mock_R4","x01222021x_Met_Mock_R5",
-                "x01222021x_Met_PF_R2","x01222021x_Met_PF_R3","x01222021x_Met_PF_R4","x01222021x_Met_PF_R6",
-                "x01222021x_Met_pooled_QC1","x01222021x_Met_pooled_QC2","x01222021x_Met_pooled_QC3","x01222021x_Met_pooled_QC4")
+                "x01222021x_Met_Mock_R1","x01222021x_Met_Mock_R2",
+                "x01222021x_Met_Mock_R3","x01222021x_Met_Mock_R4","x01222021x_Met_Mock_R5",
+                "x01222021x_Met_PF_R2","x01222021x_Met_PF_R3",
+                "x01222021x_Met_PF_R4","x01222021x_Met_PF_R6",
+                "x01222021x_Met_pooled_QC1","x01222021x_Met_pooled_QC2",
+                "x01222021x_Met_pooled_QC3","x01222021x_Met_pooled_QC4")
 
 ```
 
@@ -155,7 +166,8 @@ FYI, the function we just used to perform a t.test ('stat_compare_means') does n
 
 ------
 
-CHANGE THIS TEXT
+WERE ANY NORMALIZATION STEPS PERFORMED? CHECK WITH NISHI?
+
 Next, let's see if yesterday's normalization efforts worked. We'd expect to see a similar range of metabolite abundances in all sample groups. A histogram would be useful for this purpose.
 
 ```{r}
@@ -188,10 +200,182 @@ PS - Have questions about that 'pivot_longer' step? Check this out:^[from https:
 
 One of my favorite tools to use before digging into specific analysis is principal component analysis. High dimensional data is often defined as datasets that have more variables than observations (e.g. more metabolites than samples). It is challenging to use many simple statistical methods with these datasets, so dimensionality reduction is a useful tool. I recommend you read [this paper](https://www.nature.com/articles/nrm2041) to better understand dimensionality reduction.
 
+Let's define a couple functions that will make our PCA plot easier.
+
+```{r}
+
+get_1st = function(input_pca) {
+  # class(input_pca) = "prcomp"
+  temp = summary(input_pca)
+  temp2 = temp$importance
+  return(round(temp2[2,1]*100, digits = 2))
+}
+
+get_2nd = function(input_pca) {
+  temp = summary(input_pca)
+  temp2 = temp$importance
+  return(round(temp2[2,2]*100, digits = 2))
+}
+
+median_center_scale_data <- function(x) {
+  # x is matrix or dataframe with rows as samples and columns as mets
+  sd_x = apply(x,2,sd,na.rm=TRUE)
+  x_centered = apply(x, 2, function(y) (y - median(y,na.rm=TRUE)))
+  x_centered_scaled = sweep(x_centered, 2, sd_x, "/")
+  indx = setdiff((which(is.na(x_centered_scaled))),which(is.na(x_centered)))
+  if (any(is.na(x_centered_scaled))) { 
+    x_centered_scaled[indx] = 0}
+  if (any(is.na(x_centered_scaled))) { warning('sd == 0')}
+  return(x_centered_scaled)}
+
+```
+
+Before performing PCA, the data needs to be normalized. Specifically, we need to perform 'feature' normalization by logging values and then centering and scaling them on a feature-by-feature basis (or, metabolite-by-metabolite basis).
+
+```{r}
+
+# remove Alignment ID column
+met_abund_temp = met_abund
+met_abund_temp$`Alignment ID` = NULL
+
+# Feature normalization (log, center, scale)
+# log
+log_data = log2(met_abund_temp)
+# prep format for PCA
+data_transposed = t(log_data)
+# [median] center & [sd] scale
+data_for_pca = median_center_scale_data(data_transposed) 
+
+```
+
+We can confirm these steps by again plotting histograms of the dataset.
+
 ```{r}
 
 
+# merge metabolite abundance with group names
+met_abund_w_grps = cbind(grps,as.data.frame(data_for_pca))
+# reorganize data
+df_to_plot = tidyr::pivot_longer(met_abund_w_grps, !grps, names_to = "metabolite", values_to = "abundance")
+
+ggplot(data = df_to_plot, aes(x = abundance, fill = grps)) +
+  geom_histogram(bins = 100) + 
+  facet_wrap(~grps) + guides(fill = F)
+
 ```
+
+With the normalized data, we can perform PCA.
+
+```{r}
+
+pca_data = prcomp(data_for_pca, center = F, scale. = F)
+summary(pca_data)
+# get first two components
+data_plot = data.frame(pca_data$x[,c(1,2)]) 
+
+```
+
+And plot it: 
+
+```{r}
+
+group = factor(metadata$group)
+ggplot(data = data_plot, aes(x = PC1, y = PC2))+
+  geom_point(aes(color = group), size=I(2), alpha = .9) +#, show.legend = FALSE) +
+  theme(axis.text = element_text(family = "Helvetica")) + 
+  ylab(paste("PC2 (",paste(get_2nd(pca_data),"%)", sep = ""),sep = "")) + 
+  xlab(paste("PC1 (",paste(get_1st(pca_data),"%)", sep = ""),sep = "")) 
+
+
+```
+
+You may also want to perform a statistical test, a PerMANOVA, to see if the clusters separate.
+
+```{r}
+
+t = adonis(data_plot ~ group, data = metadata, method = "eu") # PerMANOVA
+print(t)
+
+```
+
+Note: ever wonder what the difference between PCA and PCoA is? PCoA, or Principal coordinate analysis, is a 'fancy' PCA, prinipal component analysis. If you were to calculate the distance between all samples, basically tabulate the physical distance between all points in a PCA plot, and then perform PCA on those distance calculations, you would have performed a PCoA. This is particularly useful when you want to use more complex distance calculations (i.e. phylogenetic relatedness) or use multiple variable types (i.e. metabolomics data AND microbiome data).
+
+# Removing our QC samples
+
+We are not actually interested in the metabolites detected in the blank or QC (quality control) samples. We need to remove these. However, as shown with `r interesting_met`, we don't want to consider the metabolites that were measured in the blank samples. 
+
+Let's first find the mean of all metabolites detected in the blanks samples. Then we will subtract these abundances from all measured samples.
+
+```{r}
+
+# get only the values that are associated with blank samples
+blanks = as.data.frame(met_abund[,colnames(met_abund) %in% c("Alignment ID","x01222021x_blank1","x01222021x_blank2")])
+# make metabolite ID into the rownames, rather than a column
+rownames(blanks) = blanks$`Alignment ID`
+# remove metabolite ID column
+blanks$`Alignment ID` = NULL
+# get mean value for each metabolite
+blanks = base::rowMeans(blanks)
+
+```
+
+Now we can substract the mean blank value from the abundance of each sample.
+
+```{r}
+
+# make metabolite ID into the rownames, rather than a column
+met_abund_temp = met_abund
+rownames(met_abund_temp) = met_abund_temp$`Alignment ID`
+# remove metabolite ID column
+met_abund_temp$`Alignment ID` = NULL
+# drop the blank columns
+met_abund_temp = met_abund_temp[,!(colnames(met_abund_temp) %in% c("x01222021x_blank1","x01222021x_blank2"))]
+# add mean of blank values
+met_abund_temp = cbind(met_abund_temp,blanks)
+met_abund_normalized_to_blanks = met_abund_temp[1:ncol(met_abund_temp)-1]-met_abund_temp[,ncol(met_abund_temp)]
+# drop pooled columns
+met_abund_normalized_to_blanks = met_abund_normalized_to_blanks[,!(colnames(met_abund_normalized_to_blanks) %in% c("x01222021x_Met_pooled_QC1", "x01222021x_Met_pooled_QC2", "x01222021x_Met_pooled_QC3","x01222021x_Met_pooled_QC4"))]
+# replace negative values with a very small number
+# replacing with 0 will generate errors at the log2 step below
+min_Val = min(met_abund_normalized_to_blanks[met_abund_normalized_to_blanks > 0])
+met_abund_normalized_to_blanks[met_abund_normalized_to_blanks <= 0] = min_Val/10000
+
+```
+
+Let's redo the PCA in light of these changes.
+
+```{r}
+
+# remove Alignment ID column
+met_abund_temp = met_abund_normalized_to_blanks
+met_abund_temp$`Alignment ID` = NULL
+
+# Feature normalization (log, center, scale)
+# log
+log_data = log2(met_abund_temp)
+# prep format for PCA
+data_transposed = t(log_data)
+# [median] center & [sd] scale
+data_for_pca = median_center_scale_data(data_transposed) 
+
+# do PCA
+pca_data = prcomp(data_for_pca, center = F, scale. = F)
+summary(pca_data)
+# get first two components
+data_plot = data.frame(pca_data$x[,c(1,2)]) 
+
+# plot
+group = gsub('.{3}$', '', rownames(data_for_pca))
+group = factor(gsub('x01222021x_Met_', '', group))
+ggplot(data = data_plot, aes(x = PC1, y = PC2))+
+  geom_point(aes(color = group), size=I(2), alpha = .9) +#, show.legend = FALSE) +
+  theme(axis.text = element_text(family = "Helvetica")) + 
+  ylab(paste("PC2 (",paste(get_2nd(pca_data),"%)", sep = ""),sep = "")) + 
+  xlab(paste("PC1 (",paste(get_1st(pca_data),"%)", sep = ""),sep = "")) 
+
+```
+
+This dataset without the blanks and QC samples will be used from here on out.
 
 # Perform univariate statistics
 
