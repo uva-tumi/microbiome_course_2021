@@ -8,7 +8,8 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_knit$set(root.dir = '~/Documents/work/TUMI/microbiome_course_2021/')
+#knitr::opts_knit$set(root.dir = '~/Documents/work/TUMI/microbiome_course_2021/')
+knitr::opts_knit$set(root.dir = '/Users/maureencarey/local_documents/work/TUMI_efforts/microbiome_course_2021/')
 ```
 
 # Summary of experiment (from the scientists)^[Data were provided by Nishikant Wase and preprocessed on the previous day of this workshop. Data are unpublished.]
@@ -18,7 +19,6 @@ Maize seeds were inoculated with either water or *Pseudomonas fluorescens* in th
 Our main aim for this experiment was to understand metabolomic changes in roots treated either with water or with suspension of *P.fluorescens*.
 
 In this experiment, we ran 5 replicates of the mock treatment and 4 replicates of PF treated roots. A pooled quality control sample was created after the extraction by aliquoting 10 uL of metabolite extract from each sample for identification and quality control. Blank samples are 0.1% Formic acid in water. 
-
 
 # Prep computational environment
 
@@ -30,6 +30,7 @@ library(pROC)
 library(readxl)
 library(ggpubr)
 library(vegan)
+library(DESeq2)
 
 # experiment metadata
 metadata = read_excel("./metabolomics/processed_metabolomics_data.xlsx", sheet = "sampleMetadata")
@@ -50,14 +51,16 @@ colnames(df)
 met_abund = df[,colnames(df) %in% c("Alignment ID",
                                     "x01222021x_blank1","x01222021x_blank2",
                                     "x01222021x_Met_Mock_R1","x01222021x_Met_Mock_R2",
-                                    "x01222021x_Met_Mock_R3","x01222021x_Met_Mock_R4","x01222021x_Met_Mock_R5",
+                                    "x01222021x_Met_Mock_R3","x01222021x_Met_Mock_R4",
+                                    "x01222021x_Met_Mock_R5",
                                     "x01222021x_Met_PF_R2","x01222021x_Met_PF_R3",
                                     "x01222021x_Met_PF_R4","x01222021x_Met_PF_R6",
                                     "x01222021x_Met_pooled_QC1","x01222021x_Met_pooled_QC2",
                                     "x01222021x_Met_pooled_QC3","x01222021x_Met_pooled_QC4")]
 met_info = df[,!(colnames(df) %in% c("x01222021x_blank1","x01222021x_blank2",
                                      "x01222021x_Met_Mock_R1","x01222021x_Met_Mock_R2",
-                                     "x01222021x_Met_Mock_R3","x01222021x_Met_Mock_R4","x01222021x_Met_Mock_R5",
+                                     "x01222021x_Met_Mock_R3","x01222021x_Met_Mock_R4",
+                                     "x01222021x_Met_Mock_R5",
                                      "x01222021x_Met_PF_R2","x01222021x_Met_PF_R3",
                                      "x01222021x_Met_PF_R4","x01222021x_Met_PF_R6",
                                      "x01222021x_Met_pooled_QC1","x01222021x_Met_pooled_QC2",
@@ -69,7 +72,8 @@ grps = c("blank","blank",
          "pooledQC","pooledQC","pooledQC","pooledQC")
 names(grps) = c("x01222021x_blank1","x01222021x_blank2",
                 "x01222021x_Met_Mock_R1","x01222021x_Met_Mock_R2",
-                "x01222021x_Met_Mock_R3","x01222021x_Met_Mock_R4","x01222021x_Met_Mock_R5",
+                "x01222021x_Met_Mock_R3","x01222021x_Met_Mock_R4",
+                "x01222021x_Met_Mock_R5",
                 "x01222021x_Met_PF_R2","x01222021x_Met_PF_R3",
                 "x01222021x_Met_PF_R4","x01222021x_Met_PF_R6",
                 "x01222021x_Met_pooled_QC1","x01222021x_Met_pooled_QC2",
@@ -138,7 +142,6 @@ ggplot(data = df_to_plot, aes(x = group, y = metabolite_abundance, color = group
   geom_point(size = 4) + # add points
   guides(color = F) # hide legend
   
-
 ```
 
 By eye, it looks like there may not be a difference in `r interesting_met` between the infected (PF) group and the mock treated group, especially since this metabolite can be detected at similar levels in the blank sample. However, performing a statistical test would give us higher confidence in this conclusion. Here's one way we can do this:
@@ -377,96 +380,103 @@ ggplot(data = data_plot, aes(x = PC1, y = PC2))+
 
 This dataset without the blanks and QC samples will be used from here on out.
 
-# Perform univariate statistics
+# More multivariate statistics
 
-## Prep the dataset
-
-```{r}
-
-
-```
-
-## Don't forget multiple testing correction!
-
-# Perform multivariate statistics
-
-## Prep the dataset
+Multivariate statistics come in several flavors - unsupervised and supervised. Unsupervised analyses do not require the input of any grouping data, whereas supervised analyses aim to distinguish members of groups (e.g. plants infected with PF from mock-infected plants). PCA is an unsupervised analysis whereas random forest classification and partial least squares discriminant analysis are supervised techniques.
 
 ```{r}
 
 
 ```
 
-```{r}
+## Perform machine learning with Random Forest Classification
 
+Random forest DESCRIPTION
+
+If you have sufficient N, it is wise to split the dataset into training and test sets. Even though random forest is an internally validated (i.e. it performs a training and test split for every tree), splitting your data into a training and test dataset increases your confidence in the quality of the model and minimizes overfitting. This can only be performed if you have sufficient N and would look something like this:
+
+```{r, eval = F}
+
+# Set random seed (otherwise random splits will be irreproducibly random!)
+set.seed(2021)
+# transpose to have rows as samples and columns as mets
+t_met_abund_normalized_to_blanks = t(met_abund_normalized_to_blanks)
+# Generate a random sample with half of the dataset
+indexes = sample(1:nrow(t_met_abund_normalized_to_blanks), size = floor(nrow(t_met_abund_normalized_to_blanks)/2))
+# Split into training and test sets
+training = t_met_abund_normalized_to_blanks[indexes,]
+test = t_met_abund_normalized_to_blanks[-indexes,]
 
 ```
 
-# Perform machine learning
+Since this project has only 9 samples, we cannot/should not do this. So we will use the full dataset.
 
-## Prep the dataset
-
-Split into training and test sets. Even though random forest is an internally validated (i.e. it performs a training and test split for every tree), it is still important to split your data into a training and test dataset to validate the model and to avoid overfitting. This can only be performed if you have sufficient N.
+First, we will build the random forest classifier.
 
 ```{r}
 
 # Set random seed (otherwise random splits will be irreproducibly random!)
 set.seed(2021)
-# Generate a random sample with half of the dataset
-indexes = sample(1:nrow(iris), size = floor(nrow(iris)/2))
-# Split into training and test sets
-training = iris[indexes,]
-test = iris[-indexes,]
-
-y = df$y
+# transpose to have rows as samples and columns as mets
+data_for_rf = as.data.frame(t(met_abund_normalized_to_blanks))
+# add group to dataset
+group = gsub('.{3}$', '', rownames(data_for_rf))
+group = factor(gsub('x01222021x_Met_', '', group))
+data_for_rf$group = group
+# modify how metabolite IDs are referenced because randomForest doesn't handle column names as numbers well
+colnames(data_for_rf) = paste('met_',colnames(data_for_rf), sep = '')
+colnames(data_for_rf)[colnames(data_for_rf) == 'met_group'] = 'group'
+rf_classifier = randomForest(group ~ ., data=data_for_rf, ntree=100, mtry=2, importance=TRUE)
 
 ```
 
-Build training model.
+Look at summary of model performance
 
 ```{r}
 
-rf_classifier = randomForest(Species ~ ., data=training, ntree=100, mtry=2, importance=TRUE)
+rf_classifier
 
 ```
 
+Ok, so the model is not great. We are seeing a high out-of-bag (OOB) error rate and the confusion matrix indicates that we did not often accurately predict sample group.
 
-Look at model performance on the training dataset. How well does the model correctly label samples?
-
-```{r}
-
-# Validation set assessment #1: looking at confusion matrix
-prediction_for_table = predict(rf_classifier, training[,-5], type = "class") #training[,-5] to remove y var
-table(observed=training[,5],predicted=prediction_for_table)
-
-```
+Let's take a deeper look.
 
 Look at model performance on the testing dataset. How well does the model correctly label samples?
 
 ```{r}
 
-# Validation set assessment #1: looking at confusion matrix
-prediction_for_table <- predict(rf_classifier, test[,-5], type = "class")
-table(observed=test[,5],predicted=prediction_for_table)
-
-
 predictions = as.data.frame(predict(rf_classifier,type="prob"))
-predictions$predict = names(predictions)[1:3][apply(predictions[,1:2], 1, which.max)]
-predictions$observed = test[,5]
-  
+predictions$predict = names(predictions)[1:2][apply(predictions[,1:2], 1, which.max)]
+predictions$observed = data_for_rf$group
+
 ```
 
-ROC - define - can only do for 2 level classifier
+A ROC curve, or receiver operating characteristic curve, is a helpful tool to evaluate a random forest classifier and graphically shows the predictive ability of a classifier over a range of parameters. This is only useful for binary classifiers.
 
+There is always a tradeoff between sensitivity and specificity, but at NOT DONE
+
+Just a reminder, sensitivity is the true positive rate:
+
+$$
+\frac{TruePositives}{TruePositives + FalseNegatives}
+$$
+
+Specificity is the true negative rate:
+
+$$
+\frac{TrueNegatives}{TrueNegatives + FalsePositives}
+$$
 
 ```{r}
 
-ROC_val = roc(ifelse(predictions$observed=='setosa', 'setosa', 'other'), as.numeric(predictions$setosa))
+# prep receiver operator curve (ROC)
+ROC_val = roc(ifelse(predictions$observed=='PF', 'PF', 'Mock'), as.numeric(predictions$PF))
 
   
 ```
 
-AUC - define
+AUC - NOT DONE
 
 ```{r}
 
@@ -479,26 +489,21 @@ ROC curve
 
 ```{r}
 
-# ggroc(list(ROC_val), aes = "colour") + 
-#   theme_bw() +
-#   geom_segment(aes(x = 1, xend = 0, y = 0, yend = 1), color="grey", linetype="dashed") +
-#   scale_color_manual(values = c("blue","red"), guide = F) + 
-#   theme(plot.margin=unit(c(.5,.5,.5,.5),"cm"),
-#         legend.title = element_blank()) +
-#   annotate("text", label = paste0("TOD AUC = ",round(AUC_TOD, digits = 2)), x = .25, y = .27, color = "blue") +
-#   annotate("text", label = paste0("PD AUC = ",round(AUC_PD, digits = 2)), x = .25, y = .13, color = "red") 
+ggroc(list(ROC_val), aes = "colour") +
+  theme_bw() +
+  geom_segment(aes(x = 1, xend = 0, y = 0, yend = 1), color="grey", linetype="dashed") +
+  scale_color_manual(values = c("blue","red"), guide = F) +
+  theme(plot.margin=unit(c(.5,.5,.5,.5),"cm"),
+        legend.title = element_blank()) +
+  annotate("text", label = paste0("AUC = ",round(AUC_val, digits = 2)), x = .25, y = .27, color = "blue") 
+
+# use ggsave() to save figure!
 
 ```
 
-Calculate the AUC, or area-under-the-curve.
+This model does not perform well, so we should not over interpret the results of this classifier. However, I want to walk you through some interpretive analyses. If the model was predictive, we might be interested in identifying which variables are important. 
 
-```{r}
-
-```
-
-Look at most important variables. 
-
-MeanDecreaseAccuracy is a metric of variable important and tells you the effect of removing a variable on model performance. MeanDecreaseGini is another (more complex) metric of variable importance and quantifies the measure of 'node impurity.' This evaluates how well a variable splits your classification groups.
+*MeanDecreaseAccuracy* (or the mean decrease in accuracy) is a metric of variable important and tells you the effect of removing a variable on model performance. *MeanDecreaseGini* (the mean decrease in Gini index) is another (more complex) metric of variable importance and quantifies the measure of 'node impurity.' This evaluates how well a variable splits your classification groups.
 
 ```{r}
 
@@ -506,11 +511,114 @@ varImpPlot(rf_classifier)
 
 ```
 
+Cool, but what are the names of these metabolites? We will have to do some data wrangling to make this more interpretable.
 
 ```{r}
 
+# these are the metabolite names for the Alignment IDs - keep this
+met_names = met_info[,c("Alignment ID", "Metabolite name")]
+# but remember we added 'met_' to the beginning of each alignment ID for the random forest? well, we did, so let's do that here
+met_names$`Alignment ID` = paste('met_',met_names$`Alignment ID`,sep = '')
+
+# let's extract the node impurity score from our classifier
+extracted_importance = importance(rf_classifier,type=2) # type 2 = node impurity
+# sort node impurity scores
+extracted_importance = extracted_importance[rownames(extracted_importance)[order(extracted_importance)],]
+# extract most important variables
+top10 = tail(extracted_importance,10)
+# reorganize these important variables into dataframe
+top10 = as.data.frame(top10) %>% rownames_to_column('variable') %>% dplyr::rename(value = top10)
+# get the full names of only the top 10 most important variables
+met_names = met_names[met_names$`Alignment ID` %in% top10$variable,]
+# merge variable importance with met name
+plot_df = merge(met_names,top10, by.x= 'Alignment ID', by.y = "variable", all.x = F, all.y = T)
+
 ```
+
+Ok now we can plot it.
 
 ```{r}
 
+ggplot(data = plot_df) +
+  geom_bar(aes(x=reorder(`Metabolite name`,value), y = value), 
+           stat = "identity", width=0.4) +
+  xlab(NULL) + 
+  ylab('Mean decrease in node impurity') + 
+  coord_flip()
+#ggsave("/path/to/folder.png",width = 7,height = 3,units = "in",dpi = 300)
+
 ```
+
+
+
+# Perform univariate statistics - CUT
+
+## Prep the dataset
+
+```{r}
+
+# transpose and replace zeros
+met_count = met_abund_normalized_to_blanks
+met_count[met_count == 0] = min(met_count)/10000
+
+# subset metadata for only Mock infected and PF infected samples 
+meta_use = metadata[metadata$rawFileName %in% colnames(met_count),]
+# make DESeq obj
+dds_PD = DESeqDataSetFromMatrix(countData = as.data.frame(met_count),
+                              colData = meta_use,
+                              design= ~group)
+dds_PD = DESeq(dds_PD)
+# shrinkage
+# because we are interested in treated vs untreated, we set 'coef=2'
+resNorm_PD <- lfcShrink(dds_PD, coef=2, type="ashr") # resultsNames(dds_proc)[2]
+
+#resOrdered <- resNorm_PD[order(resNorm_PD$pvalue),]
+summary(resNorm_PD)
+
+
+# Create the volcano plot - PREP FOR PREDETECTION
+resNorm_PD_df = as.data.frame(resNorm_PD) %>% 
+  rownames_to_column('ASV') %>%
+  mutate(col = ifelse(padj<0.05,1,0),
+         lab = ifelse(log2FoldChange>1.5 | abs(log2FoldChange) > 2,1,0),
+         sig = -log10(padj))
+sum(is.infinite(resNorm_PD_df$sig))
+sum(is.na(resNorm_PD_df$sig))
+resNorm_PD_df = resNorm_PD_df %>% mutate(padj = ifelse(is.na(padj),pvalue,padj),
+                                         sig = ifelse(is.na(sig),0,-log10(pvalue)),
+                                         col = ifelse(is.na(col),0,col),
+                                         lab = ifelse(is.na(lab),0,lab))
+#resNorm_PD[is.infinite(resNorm_PD$sig),"sig"] <- 350
+sum(is.na(resNorm_PD_df$pvalue))
+sum(is.infinite(resNorm_PD_df$pvalue))
+#genes.to.plot <- !is.na(resNorm_PD$pvalue)
+
+# Label ASVs
+tax = tax_table(ps_rare_diff_temp_PD)
+tax = tax[rownames(tax) %in% resNorm_PD_df$ASV,]
+tax = merge(tax,resNorm_PD_df, by.x= 'row.names', by.y = "ASV", all.x = F, all.y = T)
+tax$Genus = as.character(tax$Genus)
+tax2 = tax %>% 
+  transform(id=as.numeric(factor(Row.names))) %>%
+  mutate(var = ifelse(is.na(Family),
+                      as.character(Row.names),
+                      ifelse(is.na(Genus),paste0('[f] ',Family),Genus)))
+
+tax2 = merge(merge(tax2, as.data.frame(top10_PD)%>% rownames_to_column('Row.names'), by = "Row.names", all = T),
+             as.data.frame(top10_TOD)%>% rownames_to_column('Row.names'), by = "Row.names", all = T)
+tax2 = tax2 %>% 
+  mutate(col2 = ifelse(col == 0, 'non sig',ifelse(!is.na(top10_TOD) & !is.na(top10_PD),'sig but dif color','sig')),
+         size2 = ifelse(!is.na(top10_PD),1,0))
+
+
+ggplot(predetection_tax2 %>% mutate(timepoint = 'pre-detection')) + 
+  geom_point(aes(x = log2FoldChange, y = sig, color = as.factor(col2), size = as.factor(size2) ), alpha = .2)+
+  xlab("Effect size: log2(fold change)") + ylab("-log10(adjusted p-value)")+
+  scale_color_manual(values = c('black',"red","purple"),  guide = F) +
+  scale_size_manual(values = c(1,3),  guide = F) + facet_wrap(~timepoint)
+ggsave("/Users/maureencarey/local_documents/work/crypto_microbiome/cryptosporidium_microbiome/figures/Fig4B_univar_PD.png",
+       width = 4,height = 4,units = "in",dpi = 300)
+
+```
+
+## Don't forget multiple testing correction!
