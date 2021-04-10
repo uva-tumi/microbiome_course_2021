@@ -6,6 +6,12 @@ output:
     df_print: paged
 ---
 
+# Step 0: Get the data!
+
+Sequencing data typically comes from a sequencing core or company demultiplexed as fastq files. Fastq files contain both the sequences and quality information about each base pair in the sequence. For this study, those data can be found here.
+
+FYI the [dada2 tutorial](https://benjjneb.github.io/dada2/tutorial.html) is a great extra resource for you!
+
 # Step 1: Install necessary packages
 
 See installation_instructions file!
@@ -22,7 +28,7 @@ library(phyloseq)
 library(Biostrings)
 library(ggplot2)
 
-knitr::opts_knit$set(root.dir = '/Users/maureencarey/local_documents/work/TUMI_efforts/microbiome_course_2021/')
+knitr::opts_knit$set(root.dir = '/Users/maureencarey/local_documents/work/TUMI_efforts/microbiome_course_2021/16S/data/sequence_data/trimmed')
 ```
 
 Tictoc is a package that provides timing functions. Basically, if you run `tic()` BEFORE and `toc()` AFTER a set of commands, then you will see how long those commands took to run. Sequence analyses are generally quite slow, so we've included these functions for you to evaluate the speed of your computer. If you are struggling with slow running steps, just ask and we can share the results of intermediate steps with you! Running tic/toc is not necessary, but can be helpful!
@@ -35,7 +41,7 @@ Please note you will need to change your path in the next code block to wherever
 
 ```{r, eval = F}
 tic()
-path <- "./16S/data"
+path <- paste("/Users/mac9jc/Documents/work/TUMI/microbiome_course_2021/16S/data/sequence_data/trimmed")
 list.files(path)
 toc()
 ```
@@ -45,15 +51,24 @@ toc()
 Perform some string manipulation to get matched lists of the forward and reverse fastq files.
 
 Forward and reverse fastq filenames have format: 
-* SAMPLENAME_R1_001.fastq
-* SAMPLENAME_R2_001.fastq
+* SAMPLENAME_1_PT2.fq.gz
+* SAMPLENAME_2_PT2.fq.gz
 
 ```{r, eval = F}
 tic()
-fnFs <- sort(list.files(path, pattern="_R1_001.fastq", full.names = TRUE))
-fnRs <- sort(list.files(path, pattern="_R2_001.fastq", full.names = TRUE))
-#  Extract sample names, assuming filenames have format: SAMPLENAME_XXX.fastq
-sample.names <- sapply(strsplit(basename(fnFs), "_R1_001.fastq"), `[`, 1)
+
+fns = list.files(path)
+fns = grep("_PT2.fq.gz",fns,value=TRUE)
+
+### Load forward and reverse reads
+fastqs <- fns[grepl(".fq.gz$", fns)]
+fastqs <- sort(fastqs) # Sort ensures forward/reverse reads are in same order
+fnFs <- fastqs[grepl("_1_PT2", fastqs)] # Just the forward read files
+fnRs <- fastqs[grepl("_2_PT2", fastqs)] # Just the reverse read files
+fnFs = file.path(path, fnFs)
+fnRs = file.path(path, fnRs)
+
+sample.names <- sapply(strsplit(basename(fnFs), "_1_PT2"), `[`, 1)
 sample.names
 toc()
 ```
@@ -93,7 +108,7 @@ This `compress=TRUE` indicates to generate ".fasta.gz" files rather than ".fasta
 
 ```{r, eval = F}
 tic()
-out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, truncLen=c(245,230), 
+out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, truncLen=c(220,200), 
                      maxN=0, maxEE=c(2,3), truncQ=1, rm.phix=TRUE,
               compress=TRUE, multithread=TRUE)
 head(out)
@@ -103,8 +118,14 @@ toc()
 All of these parameters (`truncLen`,`maxN`,`maxEE`, and `truncQ`) should be selected based on your dataset by evaluating the FastQC outputs for each sequence file. Alternatively, you can inspect quality of reads in R using the following code:
 
 ```{r, eval = F}
-plotQualityProfile(fnFs[1])
+plotQualityProfile(fnFs, aggregate = T)
 ```
+
+
+```{r, eval = F}
+plotQualityProfile(fnRs, aggregate = T)
+```
+
 
 # Step 7: Learn the Error Rates
 
@@ -129,7 +150,8 @@ plotErrors(errF, nominalQ=TRUE)
 toc()
 ```
 
-Figure Legend: The error rates for each possible transition (A→C, A→G, …) are shown. Points are the observed error rates for each consensus quality score. The black line shows the estimated error rates after convergence of the machine-learning algorithm. The red line shows the error rates expected under the nominal definition of the Q-score. Here the estimated error rates (black line) are a good fit to the observed rates (points), and the error rates drop with increased quality as expected. Everything looks reasonable and we proceed with confidence.
+Explanation from the dada2 tutorial:
+>The error rates for each possible transition (A→C, A→G, …) are shown. Points are the observed error rates for each consensus quality score. The black line shows the estimated error rates after convergence of the machine-learning algorithm. The red line shows the error rates expected under the nominal definition of the Q-score. Here the estimated error rates (black line) are a good fit to the observed rates (points), and the error rates drop with increased quality as expected. Everything looks reasonable and we proceed with confidence.
 
 # Step 8: Sample Inference
 
@@ -165,12 +187,6 @@ toc()
 
 Keep in mind that 1 mismatch in a 250 base pair read is a 0.4% difference in sequence. 97% similarity is often usedto describe genus-level similarity by convention. However, some pairs of genera have V4 regions with much more similarity than that!
 
-Let's take a look at the results for the first sample.
-
-```{r, eval = F}
-head(mergers[[1]])
-```
-
 # Step 10: Construct sequence table 
 
 We can now construct an amplicon sequence variant table (ASV) table, a higher-resolution version of the OTU table produced by traditional methods.
@@ -186,8 +202,10 @@ Now we can plot it:
 
 ```{r, fig.width =4, fig.height=2, eval = F}
 #  Inspect distribution of sequence lengths
-plot(table(nchar(getSequences(seqtab))))
+plot(table(nchar(getSequences(seqtab))), xlab = "read length", ylab="number of reads")
+
 ```
+We anticipated seeing most reads to be about 250bp, based on the experimental protocol. Too long of reads is a red flag that your adapter and/or primer trimming steps did not work.
 
 # Step 11: Remove chimeras 
 
@@ -202,7 +220,7 @@ seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE
 Let's plot it.
 
 ```{r, fig.width =4, fig.height=2, eval = F}
-plot(table(nchar(getSequences(seqtab.nochim))))
+plot(table(nchar(getSequences(seqtab.nochim))), xlab = "read length", ylab="number of reads")
 ```
 
 # Step 12: Track reads through the pipeline 
@@ -221,12 +239,12 @@ track
 Write QC table to a file. Note: you will need to change the path here!
 
 ```{r, eval = F}
-write.table(track, "/Users/pk7z/Desktop/BIOINFORMATICS-CORE/TUMI-COURSE-WORK/Data-QC-Summary-Table.txt")
+write.table(track, "./Data-QC-Summary-Table.txt")
 ```
 
 ```{r, eval = F}
 samples.out <- rownames(seqtab.nochim)
-write.table(samples.out, "/Users/pk7z/Desktop/BIOINFORMATICS-CORE/TUMI-COURSE-WORK/sample-meta-data-onlyrow")
+write.table(samples.out, "./sample-meta-data-onlyrow")
 ```
 
 # Step 13: Assign taxonomy 
@@ -240,7 +258,7 @@ As summarized in the dada2 tutorial:
 
 ```{r, eval = F}
 tic()
-taxa <- assignTaxonomy(seqtab.nochim, "/Users/pk7z/Desktop/BIOINFORMATICS-CORE/TUMI-COURSE-WORK/16S-data_training/silva_nr_v138_train_set.fa", multithread=TRUE)
+taxa <- assignTaxonomy(seqtab.nochim, "/Users/mac9jc/Documents/work/TUMI/microbiome_course_2021/16S/silva_nr_v138_train_set.fa.txt", multithread=TRUE)
 toc()
 ```
 
@@ -250,7 +268,7 @@ The dada2 package also implements a method to make species level assignments bas
 
 ```{r, eval = F}
 tic()
-taxa <- addSpecies(taxa, "/Users/pk7z/Desktop/BIOINFORMATICS-CORE/TUMI-COURSE-WORK/16S-data_training/silva_species_assignment_v138.fa")
+taxa <- addSpecies(taxa, "/Users/mac9jc/Documents/work/TUMI/microbiome_course_2021/16S/silva_species_assignment_v138.fa.txt")
 toc()
 ```
 
@@ -268,7 +286,7 @@ toc()
 
 ```{r, eval = F}
 tic()
-samdf <- read.table("/Users/pk7z/Desktop/BIOINFORMATICS-CORE/TUMI-COURSE-WORK/TUMI_16S_metadata.csv", header=T, sep="\t", row.names = 1)
+samdf <- read.table("/Users/mac9jc/Documents/work/TUMI/microbiome_course_2021/16S/data/TUMI_16S_metadata.csv", header=F, sep=",", row.names = 1)
 samdf
 toc()
 ```
@@ -323,7 +341,7 @@ toc()
 
 ```{r, fig.width =4, fig.height=2, eval = F}
 tic()
-plot_richness(ps, x="Diet", measures=c("Observed", "Chao1", "ACE", "Shannon", "Simpson", "InvSimpson", "Fisher"),) 
+plot_richness(ps, x="V12", measures=c("Observed", "Chao1", "ACE", "Shannon", "Simpson", "InvSimpson", "Fisher"),) 
 toc()
 ```
 
@@ -333,7 +351,7 @@ Same thing you may wish to plot as box-plot
 
 ```{r, fig.width =4, fig.height=2, eval = F}
 tic()
-plot_richness(ps, x="Diet", measures=c("Observed", "Chao1", "ACE", "Shannon", "Simpson", "InvSimpson", "Fisher"),) + geom_boxplot()
+plot_richness(ps, x="V12", measures=c("Observed", "Chao1", "ACE", "Shannon", "Simpson", "InvSimpson", "Fisher"),) + geom_boxplot()
 toc()
 ```
 
@@ -378,7 +396,7 @@ tic()
 top20 <- names(sort(taxa_sums(ps), decreasing=TRUE))[1:20]
 ps.top20 <- transform_sample_counts(ps, function(OTU) OTU/sum(OTU))
 ps.top20 <- prune_taxa(top20, ps.top20)
-plot_bar(ps.top20, x="SampleID", fill="Genus") + facet_wrap(~Diet, scales="free_x")
+plot_bar(ps.top20, x="SampleID", fill="Genus") + facet_wrap(~V12, scales="free_x")
 toc()
 ```
 
@@ -447,5 +465,86 @@ toc()
 plot_tree(ps, color="Diet", label.tips="Genus", size="abundance", plot.margin=0.2, text.size = 2)
 ```
 
+# Step 25: Perform univariate statistics
 
+Prep the data.
+
+```{r}
+
+# transpose and replace zeros
+met_count = met_abund_normalized_to_blanks
+met_count[met_count == 0] = min(met_count)/10000
+
+# subset metadata for only Mock infected and PF infected samples 
+meta_use = metadata[metadata$rawFileName %in% colnames(met_count),]
+
+```
+
+Use DESeq2.
+
+```{r}
+# make DESeq obj
+dds_PD = DESeqDataSetFromMatrix(countData = as.data.frame(met_count),
+                              colData = meta_use,
+                              design= ~group)
+dds_PD = DESeq(dds_PD)
+# shrinkage
+# because we are interested in treated vs untreated, we set 'coef=2'
+resNorm_PD <- lfcShrink(dds_PD, coef=2, type="ashr") # resultsNames(dds_proc)[2]
+
+#resOrdered <- resNorm_PD[order(resNorm_PD$pvalue),]
+summary(resNorm_PD)
+
+```
+
+Make volcano plot.
+
+```{r}
+
+# Create the volcano plot - PREP FOR PREDETECTION
+resNorm_PD_df = as.data.frame(resNorm_PD) %>% 
+  rownames_to_column('ASV') %>%
+  mutate(col = ifelse(padj<0.05,1,0),
+         lab = ifelse(log2FoldChange>1.5 | abs(log2FoldChange) > 2,1,0),
+         sig = -log10(padj))
+sum(is.infinite(resNorm_PD_df$sig))
+sum(is.na(resNorm_PD_df$sig))
+resNorm_PD_df = resNorm_PD_df %>% mutate(padj = ifelse(is.na(padj),pvalue,padj),
+                                         sig = ifelse(is.na(sig),0,-log10(pvalue)),
+                                         col = ifelse(is.na(col),0,col),
+                                         lab = ifelse(is.na(lab),0,lab))
+#resNorm_PD[is.infinite(resNorm_PD$sig),"sig"] <- 350
+sum(is.na(resNorm_PD_df$pvalue))
+sum(is.infinite(resNorm_PD_df$pvalue))
+#genes.to.plot <- !is.na(resNorm_PD$pvalue)
+
+# Label ASVs
+tax = tax_table(ps_rare_diff_temp_PD)
+tax = tax[rownames(tax) %in% resNorm_PD_df$ASV,]
+tax = merge(tax,resNorm_PD_df, by.x= 'row.names', by.y = "ASV", all.x = F, all.y = T)
+tax$Genus = as.character(tax$Genus)
+tax2 = tax %>% 
+  transform(id=as.numeric(factor(Row.names))) %>%
+  mutate(var = ifelse(is.na(Family),
+                      as.character(Row.names),
+                      ifelse(is.na(Genus),paste0('[f] ',Family),Genus)))
+
+tax2 = merge(merge(tax2, as.data.frame(top10_PD)%>% rownames_to_column('Row.names'), by = "Row.names", all = T),
+             as.data.frame(top10_TOD)%>% rownames_to_column('Row.names'), by = "Row.names", all = T)
+tax2 = tax2 %>% 
+  mutate(col2 = ifelse(col == 0, 'non sig',ifelse(!is.na(top10_TOD) & !is.na(top10_PD),'sig but dif color','sig')),
+         size2 = ifelse(!is.na(top10_PD),1,0))
+
+
+ggplot(predetection_tax2 %>% mutate(timepoint = 'pre-detection')) + 
+  geom_point(aes(x = log2FoldChange, y = sig, color = as.factor(col2), size = as.factor(size2) ), alpha = .2)+
+  xlab("Effect size: log2(fold change)") + ylab("-log10(adjusted p-value)")+
+  scale_color_manual(values = c('black',"red","purple"),  guide = F) +
+  scale_size_manual(values = c(1,3),  guide = F) + facet_wrap(~timepoint)
+ggsave("/Users/maureencarey/local_documents/work/crypto_microbiome/cryptosporidium_microbiome/figures/Fig4B_univar_PD.png",
+       width = 4,height = 4,units = "in",dpi = 300)
+
+```
+
+## Don't forget multiple testing correction!
 
