@@ -9,7 +9,11 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 #knitr::opts_knit$set(root.dir = '~/Documents/work/TUMI/microbiome_course_2021/')
-knitr::opts_knit$set(root.dir = '/Users/maureencarey/local_documents/work/TUMI_efforts/microbiome_course_2021/')
+
+path = "/Users/mac9jc/Documents/work/TUMI/microbiome_course_2021"
+
+knitr::opts_knit$set(root.dir = path)
+
 ```
 
 # Summary of experiment (from the scientists)^[Data were provided by Nishikant Wase and preprocessed on the previous day of this workshop. Data are unpublished.]
@@ -22,7 +26,7 @@ In this experiment, we ran 5 replicates of the mock treatment and 4 replicates o
 
 # Prep computational environment
 
-```{r}
+```{r,warning=TRUE, message=FALSE}
 
 library(tidyverse)
 library(randomForest)
@@ -30,12 +34,12 @@ library(pROC)
 library(readxl)
 library(ggpubr)
 library(vegan)
-library(DESeq2)
+library(mixOmics)
 
 # experiment metadata
-metadata = read_excel("./metabolomics/processed_metabolomics_data.xlsx", sheet = "sampleMetadata")
+metadata = read_excel(paste(path,"/metabolomics/processed_metabolomics_data.xlsx",sep = ''), sheet = "sampleMetadata")
 # mass spec results (Note: Nishikant Wase's previous day of workshops generated this file from the raw spectra)
-df = read_excel("./metabolomics/processed_metabolomics_data.xlsx", sheet = "FilteredDataMatrix")
+df = read_excel(paste(path,"/metabolomics/processed_metabolomics_data.xlsx",sep = ''), sheet = "FilteredDataMatrix")
 
 ```
 
@@ -169,9 +173,7 @@ FYI, the function we just used to perform a t.test ('stat_compare_means') does n
 
 ------
 
-WERE ANY NORMALIZATION STEPS PERFORMED? CHECK WITH NISHI?
-
-Next, let's see if yesterday's normalization efforts worked. We'd expect to see a similar range of metabolite abundances in all sample groups. A histogram would be useful for this purpose.
+Next, let's see look at a all of the metabolites at once. For example, we'd expect to see a similar range of metabolite abundances in all sample groups. A histogram would be useful for this purpose - can we generate it?
 
 ```{r}
 
@@ -255,7 +257,6 @@ We can confirm these steps by again plotting histograms of the dataset.
 
 ```{r}
 
-
 # merge metabolite abundance with group names
 met_abund_w_grps = cbind(grps,as.data.frame(data_for_pca))
 # reorganize data
@@ -301,7 +302,7 @@ print(t)
 
 ```
 
-Note: ever wonder what the difference between PCA and PCoA is? PCoA, or Principal coordinate analysis, is a 'fancy' PCA, prinipal component analysis. If you were to calculate the distance between all samples, basically tabulate the physical distance between all points in a PCA plot, and then perform PCA on those distance calculations, you would have performed a PCoA. This is particularly useful when you want to use more complex distance calculations (i.e. phylogenetic relatedness) or use multiple variable types (i.e. metabolomics data AND microbiome data).
+Note: ever wonder what the difference between PCA and PCoA is? PCoA, or Principal coordinate analysis, is a 'fancy' PCA, principal component analysis. If you were to calculate the distance between all samples, basically tabulate the distance between all points in a PCA plot, and then perform PCA on those distance calculations, you would have performed a PCoA. This is particularly useful when you want to use more complex distance calculations (i.e. phylogenetic relatedness) or use multiple variable types (i.e. metabolomics data AND microbiome data).
 
 # Removing our QC samples
 
@@ -327,7 +328,7 @@ Now we can substract the mean blank value from the abundance of each sample.
 ```{r}
 
 # make metabolite ID into the rownames, rather than a column
-met_abund_temp = met_abund
+met_abund_temp = as.data.frame(met_abund)
 rownames(met_abund_temp) = met_abund_temp$`Alignment ID`
 # remove metabolite ID column
 met_abund_temp$`Alignment ID` = NULL
@@ -382,16 +383,13 @@ This dataset without the blanks and QC samples will be used from here on out.
 
 # More multivariate statistics
 
-Multivariate statistics come in several flavors - unsupervised and supervised. Unsupervised analyses do not require the input of any grouping data, whereas supervised analyses aim to distinguish members of groups (e.g. plants infected with PF from mock-infected plants). PCA is an unsupervised analysis whereas random forest classification and partial least squares discriminant analysis are supervised techniques.
-
-```{r}
-
-
-```
+Multivariate statistics come in several flavors - unsupervised and supervised. Unsupervised analyses do not require the input of any grouping data, whereas supervised analyses aim to distinguish members of groups (e.g. plants infected with PF from mock-infected plants). PCA, performed above, is an unsupervised analysis whereas random forest classification and partial least squares discriminant analysis are supervised techniques.
 
 ## Perform machine learning with Random Forest Classification
 
-Random forest DESCRIPTION
+Random forest is an ensemble machine learning approach used to classify samples into particular groups (i.e. a classifier) or to predict a variable (i.e. regressor). For a classifier, many decision trees are build from subsets of data and internally validated with respect to the remaining dataset. With this approach, variables can be ranked by their effect of the classifer accuracy.
+
+![Random Forest analysis from Carey et al 2018](./RF.jpg)
 
 If you have sufficient N, it is wise to split the dataset into training and test sets. Even though random forest is an internally validated (i.e. it performs a training and test split for every tree), splitting your data into a training and test dataset increases your confidence in the quality of the model and minimizes overfitting. This can only be performed if you have sufficient N and would look something like this:
 
@@ -454,9 +452,7 @@ predictions$observed = data_for_rf$group
 
 A ROC curve, or receiver operating characteristic curve, is a helpful tool to evaluate a random forest classifier and graphically shows the predictive ability of a classifier over a range of parameters. This is only useful for binary classifiers.
 
-There is always a tradeoff between sensitivity and specificity, but at NOT DONE
-
-Just a reminder, sensitivity is the true positive rate:
+There is always a trade off between sensitivity and specificity, but at some thresholds, the model may perform particularly well. Just a reminder, sensitivity is the true positive rate:
 
 $$
 \frac{TruePositives}{TruePositives + FalseNegatives}
@@ -470,22 +466,21 @@ $$
 
 ```{r}
 
-# prep receiver operator curve (ROC)
+# prep receiver operator characteristic (ROC) curve
 ROC_val = roc(ifelse(predictions$observed=='PF', 'PF', 'Mock'), as.numeric(predictions$PF))
-
   
 ```
 
-AUC - NOT DONE
+We quantify this ROC by calculating the area-under-the-curve, or AUC. An AUC of 0.5 means the model performed about as well as chance and anything higher than 0.5 means the model is better than chance and knowledge can be gained from this analysis.
 
 ```{r}
 
 AUC_val = auc(ROC_val)
+AUC_val
   
 ```
 
-
-ROC curve
+Let's plot the ROC curve.
 
 ```{r}
 
@@ -550,75 +545,39 @@ ggplot(data = plot_df) +
 ```
 
 
+## Partial least squares discriminant analysis - NOT DONE
 
-# Perform univariate statistics - CUT
+Partial least squares discriminant analysis, or PLS-DA, is another supervised multivariate approach. PLS-DA can be thought of as a supervised version of PCA - both reduce the dimensions of large datasets using linear approaches. Like random forest however, PLS-DA considers class labels and can be used for feature selections (that is, identifying most important variables).
 
-## Prep the dataset
+For the sake of time, we won't get into the math behind PLS-DA here. However, [this paper](https://www.nature.com/articles/nrm2041) is also a great resource if you are interested!
+
+Let's get started.
 
 ```{r}
 
-# transpose and replace zeros
-met_count = met_abund_normalized_to_blanks
-met_count[met_count == 0] = min(met_count)/10000
 
-# subset metadata for only Mock infected and PF infected samples 
-meta_use = metadata[metadata$rawFileName %in% colnames(met_count),]
-# make DESeq obj
-dds_PD = DESeqDataSetFromMatrix(countData = as.data.frame(met_count),
-                              colData = meta_use,
-                              design= ~group)
-dds_PD = DESeq(dds_PD)
-# shrinkage
-# because we are interested in treated vs untreated, we set 'coef=2'
-resNorm_PD <- lfcShrink(dds_PD, coef=2, type="ashr") # resultsNames(dds_proc)[2]
-
-#resOrdered <- resNorm_PD[order(resNorm_PD$pvalue),]
-summary(resNorm_PD)
+# transpose to have rows as samples and columns as mets
+data_for_plsda = as.data.frame(t(met_abund_normalized_to_blanks))
+data_for_plsda_wo_grp = data_for_plsda
+# add group to dataset
+group = gsub('.{3}$', '', rownames(data_for_plsda))
+group = factor(gsub('x01222021x_Met_', '', group))
+data_for_plsda$group = group
 
 
-# Create the volcano plot - PREP FOR PREDETECTION
-resNorm_PD_df = as.data.frame(resNorm_PD) %>% 
-  rownames_to_column('ASV') %>%
-  mutate(col = ifelse(padj<0.05,1,0),
-         lab = ifelse(log2FoldChange>1.5 | abs(log2FoldChange) > 2,1,0),
-         sig = -log10(padj))
-sum(is.infinite(resNorm_PD_df$sig))
-sum(is.na(resNorm_PD_df$sig))
-resNorm_PD_df = resNorm_PD_df %>% mutate(padj = ifelse(is.na(padj),pvalue,padj),
-                                         sig = ifelse(is.na(sig),0,-log10(pvalue)),
-                                         col = ifelse(is.na(col),0,col),
-                                         lab = ifelse(is.na(lab),0,lab))
-#resNorm_PD[is.infinite(resNorm_PD$sig),"sig"] <- 350
-sum(is.na(resNorm_PD_df$pvalue))
-sum(is.infinite(resNorm_PD_df$pvalue))
-#genes.to.plot <- !is.na(resNorm_PD$pvalue)
-
-# Label ASVs
-tax = tax_table(ps_rare_diff_temp_PD)
-tax = tax[rownames(tax) %in% resNorm_PD_df$ASV,]
-tax = merge(tax,resNorm_PD_df, by.x= 'row.names', by.y = "ASV", all.x = F, all.y = T)
-tax$Genus = as.character(tax$Genus)
-tax2 = tax %>% 
-  transform(id=as.numeric(factor(Row.names))) %>%
-  mutate(var = ifelse(is.na(Family),
-                      as.character(Row.names),
-                      ifelse(is.na(Genus),paste0('[f] ',Family),Genus)))
-
-tax2 = merge(merge(tax2, as.data.frame(top10_PD)%>% rownames_to_column('Row.names'), by = "Row.names", all = T),
-             as.data.frame(top10_TOD)%>% rownames_to_column('Row.names'), by = "Row.names", all = T)
-tax2 = tax2 %>% 
-  mutate(col2 = ifelse(col == 0, 'non sig',ifelse(!is.na(top10_TOD) & !is.na(top10_PD),'sig but dif color','sig')),
-         size2 = ifelse(!is.na(top10_PD),1,0))
-
-
-ggplot(predetection_tax2 %>% mutate(timepoint = 'pre-detection')) + 
-  geom_point(aes(x = log2FoldChange, y = sig, color = as.factor(col2), size = as.factor(size2) ), alpha = .2)+
-  xlab("Effect size: log2(fold change)") + ylab("-log10(adjusted p-value)")+
-  scale_color_manual(values = c('black',"red","purple"),  guide = F) +
-  scale_size_manual(values = c(1,3),  guide = F) + facet_wrap(~timepoint)
-ggsave("/Users/maureencarey/local_documents/work/crypto_microbiome/cryptosporidium_microbiome/figures/Fig4B_univar_PD.png",
-       width = 4,height = 4,units = "in",dpi = 300)
+## PLS-DA function
+plsda.res <- plsda(data_for_plsda_wo_grp, data_for_plsda$group, ncomp = 5) # where ncomp is the number of components wanted
 
 ```
 
-## Don't forget multiple testing correction!
+
+```{r, eval = F}
+
+set.seed(2021) # for reproducibility here, only when the `cpus' argument is not used
+perf.plsda <- perf(plsda.res, validation = "Mfold", folds = 4, 
+                  progressBar = FALSE, auc = TRUE, nrepeat = 10) 
+# perf.plsda.srbct$error.rate  # error rates
+plot(perf.plsda, col = color.mixo(1:3), sd = TRUE, legend.position = "horizontal")
+
+```
+
