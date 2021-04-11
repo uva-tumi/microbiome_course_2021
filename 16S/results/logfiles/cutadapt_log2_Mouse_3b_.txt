@@ -1,0 +1,108 @@
+This is cutadapt 3.4 with Python 3.8.2
+Command line parameters: -a GGACTACCAGGGTATCTAAT...TTACCGCGGCTGCTGGCAC -A GTGCCAGCAGCCGCGGTAA...ATTAGATACCCTGGTAGTCC --minimum-length 50 -o /Users/mac9jc/Documents/work/TUMI/microbiome_course_2021/16S/data/sequence_data/trimmed/Mouse_3b_1_PT2.fq.gz -p /Users/mac9jc/Documents/work/TUMI/microbiome_course_2021/16S/data/sequence_data/trimmed/Mouse_3b_2_PT2.fq.gz /Users/mac9jc/Documents/work/TUMI/microbiome_course_2021/16S/data/sequence_data/trimmed/Mouse_3b_1_PT.fq.gz /Users/mac9jc/Documents/work/TUMI/microbiome_course_2021/16S/data/sequence_data/trimmed/Mouse_3b_2_PT.fq.gz --cores=4
+Processing reads on 4 cores in paired-end mode ...
+Finished in 3.16 s (27 µs/read; 2.20 M reads/minute).
+
+=== Summary ===
+
+Total read pairs processed:            115,887
+  Read 1 with adapter:                  66,143 (57.1%)
+  Read 2 with adapter:                  50,050 (43.2%)
+Pairs that were too short:                  99 (0.1%)
+Pairs written (passing filters):       115,788 (99.9%)
+
+Total basepairs processed:    55,967,674 bp
+  Read 1:    27,937,015 bp
+  Read 2:    28,030,659 bp
+Total written (filtered):     53,408,610 bp (95.4%)
+  Read 1:    26,377,400 bp
+  Read 2:    27,031,210 bp
+
+=== First read: Adapter 3 ===
+
+Sequence: GGACTACCAGGGTATCTAAT...TTACCGCGGCTGCTGGCAC; Type: linked; Length: 20+19; 5' trimmed: 66125 times; 3' trimmed: 46 times
+
+
+No. of allowed errors:
+1-9 bp: 0; 10-19 bp: 1; 20 bp: 2
+
+No. of allowed errors:
+1-9 bp: 0; 10-19 bp: 1
+
+Overview of removed sequences at 5' end
+length	count	expect	max.err	error counts
+3	23	1810.7	0	23
+4	1	452.7	0	1
+5	2	113.2	0	2
+15	1	0.0	1	1
+16	1	0.0	1	1
+17	1	0.0	1	0 1
+18	13	0.0	1	2 5 6
+19	139	0.0	1	39 92 8
+20	7361	0.0	2	7044 304 13
+21	8729	0.0	2	8333 373 23
+22	8116	0.0	2	7646 452 18
+23	7616	0.0	2	7115 484 17
+24	7102	0.0	2	6114 948 40
+25	9706	0.0	2	9240 445 21
+26	9786	0.0	2	9387 386 13
+27	7487	0.0	2	7139 334 14
+28	40	0.0	2	16 22 2
+29	1	0.0	2	0 1
+
+
+
+Overview of removed sequences at 3' end
+length	count	expect	max.err	error counts
+3	21	1810.7	0	21
+4	10	452.7	0	10
+5	2	113.2	0	2
+18	2	0.0	1	2
+19	4	0.0	1	4
+20	3	0.0	1	3
+21	3	0.0	1	2 1
+22	1	0.0	1	1
+
+
+=== Second read: Adapter 6 ===
+
+Sequence: GTGCCAGCAGCCGCGGTAA...ATTAGATACCCTGGTAGTCC; Type: linked; Length: 19+20; 5' trimmed: 49244 times; 3' trimmed: 843 times
+
+
+No. of allowed errors:
+1-9 bp: 0; 10-19 bp: 1
+
+No. of allowed errors:
+1-9 bp: 0; 10-19 bp: 1; 20 bp: 2
+
+Overview of removed sequences at 5' end
+length	count	expect	max.err	error counts
+3	66	1810.7	0	66
+4	4	452.7	0	4
+5	1	113.2	0	1
+14	5	0.0	1	3 2
+15	2	0.0	1	1 1
+16	5	0.0	1	1 4
+17	85	0.0	1	54 31
+18	466	0.0	1	15 451
+19	14538	0.0	1	12742 1796
+20	15701	0.0	1	8786 6915
+21	10269	0.0	1	6498 3771
+22	8085	0.0	1	4927 3158
+23	15	0.0	1	6 9
+31	1	0.0	1	1
+49	1	0.0	1	1
+
+
+
+Overview of removed sequences at 3' end
+length	count	expect	max.err	error counts
+3	826	1810.7	0	826
+5	2	113.2	0	2
+9	1	0.4	0	0 1
+19	2	0.0	1	2
+20	4	0.0	2	4
+22	4	0.0	2	3 0 1
+25	1	0.0	2	0 1
+26	2	0.0	2	2
+27	1	0.0	2	1

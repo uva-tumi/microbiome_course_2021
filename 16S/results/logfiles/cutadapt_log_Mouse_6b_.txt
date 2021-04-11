@@ -1,0 +1,101 @@
+This is cutadapt 3.4 with Python 3.8.2
+Command line parameters: -a GTGCCAGCAGCCGCGGTAA...ATTAGATACCCTGGTAGTCC -A GGACTACCAGGGTATCTAAT...TTACCGCGGCTGCTGGCAC -o /Users/mac9jc/Documents/work/TUMI/microbiome_course_2021/16S/data/sequence_data/trimmed/Mouse_6b_1_PT.fq.gz -p /Users/mac9jc/Documents/work/TUMI/microbiome_course_2021/16S/data/sequence_data/trimmed/Mouse_6b_2_PT.fq.gz /Users/mac9jc/Documents/work/TUMI/microbiome_course_2021/16S/data/sequence_data/trimmed/Mouse_6b_1_Adapter_trimmed.fq /Users/mac9jc/Documents/work/TUMI/microbiome_course_2021/16S/data/sequence_data/trimmed/Mouse_6b_2_Adapter_trimmed.fq --cores=4
+Processing reads on 4 cores in paired-end mode ...
+Finished in 3.09 s (28 µs/read; 2.15 M reads/minute).
+
+=== Summary ===
+
+Total read pairs processed:            110,420
+  Read 1 with adapter:                  51,211 (46.4%)
+  Read 2 with adapter:                  41,183 (37.3%)
+Pairs written (passing filters):       110,420 (100.0%)
+
+Total basepairs processed:    55,150,188 bp
+  Read 1:    27,575,094 bp
+  Read 2:    27,575,094 bp
+Total written (filtered):     53,146,384 bp (96.4%)
+  Read 1:    26,528,090 bp
+  Read 2:    26,618,294 bp
+
+=== First read: Adapter 3 ===
+
+Sequence: GTGCCAGCAGCCGCGGTAA...ATTAGATACCCTGGTAGTCC; Type: linked; Length: 19+20; 5' trimmed: 50660 times; 3' trimmed: 561 times
+
+
+No. of allowed errors:
+1-9 bp: 0; 10-19 bp: 1
+
+No. of allowed errors:
+1-9 bp: 0; 10-19 bp: 1; 20 bp: 2
+
+Overview of removed sequences at 5' end
+length	count	expect	max.err	error counts
+3	17	1725.3	0	17
+4	2	431.3	0	2
+5	1	107.8	0	1
+14	1	0.0	1	0 1
+15	1	0.0	1	1
+16	2	0.0	1	1 1
+17	6	0.0	1	2 4
+18	340	0.0	1	5 335
+19	9275	0.0	1	8675 600
+20	13171	0.0	1	12489 682
+21	13388	0.0	1	12485 903
+22	14409	0.0	1	13756 653
+23	46	0.0	1	19 27
+24	1	0.0	1	0 1
+
+
+
+Overview of removed sequences at 3' end
+length	count	expect	max.err	error counts
+3	535	1725.3	0	535
+4	22	431.3	0	22
+21	1	0.0	2	1
+22	2	0.0	2	2
+26	1	0.0	2	0 1
+
+
+=== Second read: Adapter 6 ===
+
+Sequence: GGACTACCAGGGTATCTAAT...TTACCGCGGCTGCTGGCAC; Type: linked; Length: 20+19; 5' trimmed: 41119 times; 3' trimmed: 93 times
+
+
+No. of allowed errors:
+1-9 bp: 0; 10-19 bp: 1; 20 bp: 2
+
+No. of allowed errors:
+1-9 bp: 0; 10-19 bp: 1
+
+Overview of removed sequences at 5' end
+length	count	expect	max.err	error counts
+3	158	1725.3	0	158
+4	8	431.3	0	8
+5	9	107.8	0	9
+15	2	0.0	1	2
+16	2	0.0	1	1 1
+17	1	0.0	1	0 1
+19	105	0.0	1	7 86 12
+20	5723	0.0	2	2835 2416 472
+21	6041	0.0	2	2678 1486 1877
+22	5126	0.0	2	2307 1504 1315
+23	4991	0.0	2	2292 1460 1239
+24	4520	0.0	2	2091 1383 1046
+25	4165	0.0	2	1851 1335 979
+26	5154	0.0	2	2263 1646 1245
+27	5091	0.0	2	2351 1574 1166
+28	22	0.0	2	11 9 2
+37	1	0.0	2	0 1
+
+
+
+Overview of removed sequences at 3' end
+length	count	expect	max.err	error counts
+3	63	1725.3	0	63
+4	8	431.3	0	8
+5	4	107.8	0	4
+17	7	0.0	1	2 5
+18	4	0.0	1	0 4
+19	4	0.0	1	1 3
+20	2	0.0	1	0 2
+22	1	0.0	1	0 1
