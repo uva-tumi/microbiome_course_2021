@@ -1,4 +1,4 @@
-#SampleID,BarcodeSequence,LinkerPrimerSequence,MiSeqPlate_no,MiSeqWell_no,MiSeqWell,MiSeqPlateWell,ref,SampleType,SampleDate,SampleTime,Diet,Colonization
+SampleID,BarcodeSequence,LinkerPrimerSequence,MiSeqPlate_no,MiSeqWell_no,MiSeqWell,MiSeqPlateWell,ref,SampleType,SampleDate,SampleTime,Diet,Colonization
 Mouse_1a,ATCTCGATAAGCG,NA,9,777,A9,9_A9,9,Fecal,6.29.2016,Endpoint,Control,MockCommunity2
 Mouse_2a,CAGACAAGCTTCC,NA,9,778,A10,9_A10,10,Fecal,6.29.2016,Endpoint,Control,MockCommunity2
 Mouse_3a,ATCCGCAACCTGA,NA,9,779,A11,9_A11,11,Fecal,6.29.2016,Endpoint,Control,MockCommunity2
