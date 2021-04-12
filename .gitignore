@@ -6,3 +6,4 @@ metabolomics/processed_metabolomics_data.xlsx
 */*.fq*
 */*.fastq
 */*.fastq*
+16S/silva*
