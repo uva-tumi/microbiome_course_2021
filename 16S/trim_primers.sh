@@ -40,11 +40,5 @@ for f in $files; do
         $path_to_cutadapt -a GTGCCAGCAGCCGCGGTAA...ATTAGATACCCTGGTAGTCC -A GGACTACCAGGGTATCTAAT...TTACCGCGGCTGCTGGCAC -o $output_file3 -p $output_file4 $output_file1 $output_file2 --cores=4 > $path_for_logs/"cutadapt_log_"$f_without_num".txt"
         $path_to_cutadapt -a GGACTACCAGGGTATCTAAT...TTACCGCGGCTGCTGGCAC -A GTGCCAGCAGCCGCGGTAA...ATTAGATACCCTGGTAGTCC --minimum-length 50 -o $output_file5 -p $output_file6 $output_file3 $output_file4 --cores=4 > $path_for_logs/"cutadapt_log2_"$f_without_num".txt"
 
-        echo $output_file1
-        echo $output_file2
-        echo $output_file3
-        echo $output_file4
-        echo $output_file5
-        echo $output_file6
     fi
 done
