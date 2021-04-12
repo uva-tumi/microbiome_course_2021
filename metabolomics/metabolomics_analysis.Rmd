@@ -5,12 +5,12 @@ date: "4/5/2021"
 output: html_document
 ---
 
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 #knitr::opts_knit$set(root.dir = '~/Documents/work/TUMI/microbiome_course_2021/')
 
-path = "/Users/mac9jc/Documents/work/TUMI/microbiome_course_2021"
+#path = "/Users/mac9jc/Documents/work/TUMI/microbiome_course_2021"
+path = "/Users/maureencarey/local_documents/work/TUMI_efforts/microbiome_course_2021"
 
 knitr::opts_knit$set(root.dir = path)
 
@@ -540,7 +540,14 @@ ggplot(data = plot_df) +
   xlab(NULL) + 
   ylab('Mean decrease in node impurity') + 
   coord_flip()
-#ggsave("/path/to/folder.png",width = 7,height = 3,units = "in",dpi = 300)
+
+```
+
+FYI if you just made a plot with ggplot, you can save it like this as a pdf/png/whatever you want:
+
+```{r, eval = F}
+
+ggsave("/path/to/folder.png",width = 7,height = 3,units = "in",dpi = 300)
 
 ```
 
@@ -566,10 +573,21 @@ data_for_plsda$group = group
 
 
 ## PLS-DA function
-plsda.res <- plsda(data_for_plsda_wo_grp, data_for_plsda$group, ncomp = 5) # where ncomp is the number of components wanted
+plsda.res = plsda(data_for_plsda_wo_grp, data_for_plsda$group, ncomp = 2, scale = TRUE,
+                   logratio="CLR") # where ncomp is the number of components wanted
+```
+
+Now let's plot the results:
+
+```{r}
+
+plotIndiv(plsda.res)
 
 ```
 
+Like with PCA, we are interested in seeing if the sample groups (color coded here) separate well.
+
+Note on percent variation summarized by each component: unlike PCA, the algorithm is not aiming to maximally summarize variance in the first two components. PLS-DA is aiming to split the samples into sample groups, which it does quite effectively here. The low percent variation on component 1 and 2, combined with the good separation of samples, indicates that there is a lot of variation in metabolite abundances unrelated to the sample groupings.
 
 ```{r, eval = F}
 
