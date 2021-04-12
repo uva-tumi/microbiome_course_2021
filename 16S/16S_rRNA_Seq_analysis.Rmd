@@ -8,23 +8,51 @@ output:
 
 # Step 0: Know the experiment and get the data!
 
-## The experiment^[Data are unpublished and provided by Carrie Cowardin.]
+### The experiment^[Data are unpublished and provided by Carrie Cowardin.]
 
-Carrie Cowardin briefed you on this dataset yesterday. Essentially, gnotobiotic mice were colonized with a synthetic microbiome, a community with 25 members. These mice were then split into two groups and fed two distinct diets (control and supplemented). We are interested in how the microbiome composition may vary as a result of these diets.
+Carrie Cowardin briefed you on this dataset yesterday. Essentially, gnotobiotic mice were colonized with a synthetic microbiome, a community with 25 members. These mice were then split into two groups and fed two distinct diets (control and supplemented). We are interested in how the fecal microbiome composition may vary as a result of these diets.
 
-DNA was extracted from stool samples and the V4 region of the 16S rRNA gene was amplified with a modified Faith et al. protocol. 250 basepairs were then sequenced using paired end sequencing on a MiSeq.
+DNA was extracted from stool samples and the V4 region of the 16S rRNA gene was amplified with a modified Faith et al. protocol. 250 base pairs were then sequenced using paired end sequencing on a MiSeq. To analyses these data, one of the most important pieces of information is what primers were used. As a reminder, the experimental conversion from stool to amplified 16S rRNA gene requires:
 
-## The data
+1. DNA extraction
+2. DNA amplification
+3. Library preparation 
+4. Multiplexing
+5. Sequencing
 
-Sequencing data typically comes from a sequencing core or company demultiplexed as fastq files. Fastq files contain both the sequences and quality information about each base pair in the sequence. For this study, those data will be provided at the beginning of the workshop in the course Google Drive.
+Analysis then requires:
 
-## FYI
+1. De-multiplexing
+2. Trimming adapter sequences (added in the sequencing process)
+3. Trimming primer sequences (added during the DNA amplification process)
+4. Analysis like the one provided below
 
-The [dada2 tutorial](https://benjjneb.github.io/dada2/tutorial.html) (and inspiration for this tutorial) is a great extra resource for you!
+Most sequencing service providers will demultiplex the data for you - essentially, multiple samples from one or more experiments can be run on one sequencing run to save cost, but you may want to analyze the sequences from each sample indpendently. Multiplexing is a process of adding barcodes so that you can disentangle a sequencing run into individual samples. Demultiplexing is the process of interpreting these barcodes to separate sample-by-sample data. If you received files with the sample name in the file name, the data has been demultiplexed.
+
+The microbiome analyst (you!) will be responsible for trimming adapter sequences. These adapters are quite standard and depend on the library preparation kit you've used (i.e. Illumina's Nextera® Library Prep for the MiSeq® System). The script we have included for trimming primers and adapters uses a generic fasta file with over 150 different commonly used adapter options.
+
+The analyst will also be responsible for trimming primer sequences. These are less standardized - common examples are from Faith et al 2013 or Caporaso et al 2011 - and can be technically more challenging to remove because of variable bases and/or variable linker sequences (i.e. a mix of 4 primers may be used with conserved beginning and ends but variable middle sections). **It is essential for the accuracy of your results to trim the correct primer sequences.** If you are the computational analyst and your experimental collaborators do not provide the primer sequences, you cannot proceed. The script we have included for trimming primers and adapters shows how we removed the Caporaso et al and a general framework for how to remove primer sequences.
+
+### The data
+
+Sequencing data will be shared in a specialized text file with the extension `.fastq`. These files contain both the sequences and quality information about each base pair in the sequence. For this study, those data will be provided at the beginning of the workshop in the course Google Drive. The data is unpublished so please do not share without Carrie Cowardin's permission.
+
+### FYI
+
+The tutorials for [dada2](https://benjjneb.github.io/dada2/tutorial.html) and [DESeq2](http://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html) (and inspiration for this tutorial) are great extra resources for you!
 
 # Step 1: Install necessary packages
 
 See installation_instructions file provided in the course Google Drive or on Github in the [pre-course material folder](https://github.com/uva-tumi/microbiome_course_2021).
+
+One minor update, please also install the following packages:
+
+```{r, eval = F}
+
+BiocManager::install(version = '3.12')
+BiocManager::install(c("DESeq2","apeglm","ggrepel"))
+
+```
 
 # Step 2: Load the computational environment
 

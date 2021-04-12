@@ -37,8 +37,24 @@ for f in $files; do
         output_file4=$path_for_output_data/$f_without_num"2_PT.fq.gz"
         output_file5=$path_for_output_data/$f_without_num"1_PT2.fq.gz"
         output_file6=$path_for_output_data/$f_without_num"2_PT2.fq.gz"
-        $path_to_cutadapt -a GTGCCAGCAGCCGCGGTAA...ATTAGATACCCTGGTAGTCC -A GGACTACCAGGGTATCTAAT...TTACCGCGGCTGCTGGCAC -o $output_file3 -p $output_file4 $output_file1 $output_file2 --cores=4 > $path_for_logs/"cutadapt_log_"$f_without_num".txt"
-        $path_to_cutadapt -a GGACTACCAGGGTATCTAAT...TTACCGCGGCTGCTGGCAC -A GTGCCAGCAGCCGCGGTAA...ATTAGATACCCTGGTAGTCC --minimum-length 50 -o $output_file5 -p $output_file6 $output_file3 $output_file4 --cores=4 > $path_for_logs/"cutadapt_log2_"$f_without_num".txt"
+        #$path_to_cutadapt -a GTGCCAGCAGCCGCGGTAA...ATTAGATACCCTGGTAGTCC -A GGACTACCAGGGTATCTAAT...TTACCGCGGCTGCTGGCAC -o $output_file3 -p $output_file4 $output_file1 $output_file2 --cores=4 > $path_for_logs/"cutadapt_log_"$f_without_num"_2.txt"
+        #$path_to_cutadapt -a GGACTACCAGGGTATCTAAT...TTACCGCGGCTGCTGGCAC -A GTGCCAGCAGCCGCGGTAA...ATTAGATACCCTGGTAGTCC --minimum-length 50 -o $output_file5 -p $output_file6 $output_file3 $output_file4 --cores=4 > $path_for_logs/"cutadapt_log2_"$f_without_num"_2.txt"
+
+
+        # to reverse complement, use https://www.bioinformatics.org/sms/rev_comp.html
+        # wildcards at http://www.bioinformatics.org/sms/iupac.html - these will not RC well in the above link, so replace with Ns and do manually
+        # F = GTGCCAGCMGCCGCGGTAA
+        # wildcards M = A or C (RC -> T or G = K)
+        # R = GGACTACHVGGGTWTCTAAT
+        # wildcards H = A or C or T (RC -> D), V = A or C or G (RC -> B), W = A or T (RC -> W)
+        # F_RC = TTACCGCGGCKGCTGGCAC
+        # R_RC = ATTAGAWACCCBDGTAGTCC
+                
+        $path_to_cutadapt -a GTGCCAGCMGCCGCGGTAA...ATTAGAWACCCBDGTAGTCC -A GGACTACHVGGGTWTCTAAT...TTACCGCGGCKGCTGGCAC --minimum-length 50 -o $output_file3 -p $output_file4 $output_file1 $output_file2 --cores=4 > $path_for_logs/"cutadapt_log2_"$f_without_num".txt"
+        $path_to_cutadapt -a GGACTACHVGGGTWTCTAAT...TTACCGCGGCKGCTGGCAC -A GTGCCAGCMGCCGCGGTAA...ATTAGAWACCCBDGTAGTCC --minimum-length 50 -o $output_file5 -p $output_file6 $output_file3 $output_file4 --cores=4 > $path_for_logs/"cutadapt_log2_"$f_without_num".txt"
+
+        #$path_to_cutadapt -a F...R_RC -A R...F_RC --minimum-length 50 -o $output_file3 -p $output_file4 $output_file1 $output_file2 --cores=4 > $path_for_logs/"cutadapt_log2_"$f_without_num".txt"
+        #$path_to_cutadapt -a R...F_RC -A F...R_RC --minimum-length 50 -o $output_file5 -p $output_file6 $output_file3 $output_file4 --cores=4 > $path_for_logs/"cutadapt_log2_"$f_without_num".txt"
 
     fi
 done
