@@ -12,13 +12,12 @@ output:
 
 Carrie Cowardin briefed you on this dataset yesterday. Essentially, gnotobiotic mice were colonized with a synthetic microbiome, a community with 25 members. These mice were then split into two groups and fed two distinct diets (control and supplemented). We are interested in how the fecal microbiome composition may vary as a result of these diets.
 
-DNA was extracted from stool samples and the V4 region of the 16S rRNA gene was amplified with a modified Faith et al. protocol. 250 base pairs were then sequenced using paired end sequencing on a MiSeq. To analyses these data, one of the most important pieces of information is what primers were used. As a reminder, the experimental conversion from stool to amplified 16S rRNA gene requires:
+DNA was extracted from stool samples and the V4 region of the 16S rRNA gene was amplified with a modified Caporaso et al. protocol. 250 base pairs were then sequenced using paired end sequencing on a MiSeq. To analyses these data, one of the most important pieces of information is what primers were used. As a reminder, the experimental conversion from stool to amplified 16S rRNA gene requires:
 
 1. DNA extraction
 2. DNA amplification
-3. Library preparation 
-4. Multiplexing
-5. Sequencing
+3. Multiplexed library preparation 
+4. Sequencing
 
 Analysis then requires:
 
@@ -27,11 +26,13 @@ Analysis then requires:
 3. Trimming primer sequences (added during the DNA amplification process)
 4. Analysis like the one provided below
 
-Most sequencing service providers will demultiplex the data for you - essentially, multiple samples from one or more experiments can be run on one sequencing run to save cost, but you may want to analyze the sequences from each sample indpendently. Multiplexing is a process of adding barcodes so that you can disentangle a sequencing run into individual samples. Demultiplexing is the process of interpreting these barcodes to separate sample-by-sample data. If you received files with the sample name in the file name, the data has been demultiplexed.
+Most sequencing service providers will demultiplex the data for you - essentially, multiple samples from one or more experiments can be run on one sequencing run to save cost, but you may want to analyze the sequences from each sample independently. Multiplexing is a process of adding sequence barcodes so that you can disentangle the sequences from one run into those associated with individual samples. Demultiplexing is the process of interpreting these barcodes to separate sample-by-sample data. If you received files with the sample name in the file name, the data has been demultiplexed.
 
 The microbiome analyst (you!) will be responsible for trimming adapter sequences. These adapters are quite standard and depend on the library preparation kit you've used (i.e. Illumina's Nextera® Library Prep for the MiSeq® System). The script we have included for trimming primers and adapters uses a generic fasta file with over 150 different commonly used adapter options.
 
-The analyst will also be responsible for trimming primer sequences. These are less standardized - common examples are from Faith et al 2013 or Caporaso et al 2011 - and can be technically more challenging to remove because of variable bases and/or variable linker sequences (i.e. a mix of 4 primers may be used with conserved beginning and ends but variable middle sections). **It is essential for the accuracy of your results to trim the correct primer sequences.** If you are the computational analyst and your experimental collaborators do not provide the primer sequences, you cannot proceed. The script we have included for trimming primers and adapters shows how we removed the Caporaso et al and a general framework for how to remove primer sequences.
+The analyst will also be responsible for trimming primer sequences. These are less standardized - common examples are from Faith et al 2013 or Caporaso et al 2011 - and can be technically more challenging to remove because of variable bases and/or variable linker sequences (i.e. a mix of 4 primers may be used with conserved beginning and ends but variable middle sections). **It is essential for the accuracy of your results to trim the correct primer sequences.** If you are the computational analyst and your experimental collaborators do not provide the primer sequences, you cannot proceed. The script we have included for trimming primers and adapters shows how we removed the Caporaso et al primers and a general framework for how to remove primer sequences.
+
+FYI these steps (demultiplexing and adapter and primer trimming) require some additional software. We will not ask you to perform these steps today, but have provided code for your reference to do so!
 
 ### The data
 
@@ -39,7 +40,7 @@ Sequencing data will be shared in a specialized text file with the extension `.f
 
 ### FYI
 
-The tutorials for [dada2](https://benjjneb.github.io/dada2/tutorial.html) and [DESeq2](http://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html) (and inspiration for this tutorial) are great extra resources for you!
+The tutorials for [dada2](https://benjjneb.github.io/dada2/tutorial.html) and [DESeq2](http://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html) are great extra resources for you (and inspiration for this tutorial)!
 
 # Step 1: Install necessary packages
 
@@ -72,8 +73,9 @@ library("ape")
 library("ggrepel")
 
 path = "/Users/mac9jc/Documents/work/TUMI/microbiome_course_2021"
-path_results = "/Users/mac9jc/Documents/work/TUMI/microbiome_course_2021/16S/results"
-path_trimmed = "/Users/mac9jc/Documents/work/TUMI/microbiome_course_2021/16S/data/sequence_data/trimmed"
+path_results = "/Users/mac9jc/Documents/work/TUMI/microbiome_course_2021/16S"
+path_trimmed = "/Users/mac9jc/Documents/work/TUMI/microbiome_course_2021/16S/trimmed_for_students"
+path_reference = "/Users/mac9jc/Documents/work/TUMI/microbiome_course_2021/16S/reference"
 
 knitr::opts_knit$set(root.dir = path)
 
@@ -160,7 +162,7 @@ head(out)
 toc()
 ```
 
-All of these parameters (`truncLen`,`maxN`,`maxEE`, and `truncQ`) should be selected based on your dataset by evaluating the FastQC outputs for each sequence file. Alternatively, you can inspect quality of reads in R using the following code:
+All of these parameters (`truncLen`,`maxN`,`maxEE`, and `truncQ`) should be selected based on your dataset by evaluating the FastQC/MultiQC outputs for each sequence file. Alternatively, you can inspect quality of reads in R using the following code:
 
 ```{r}
 plotQualityProfile(fnFs, aggregate = T)
@@ -302,7 +304,7 @@ As summarized in the dada2 tutorial:
 
 ```{r}
 tic()
-taxa <- assignTaxonomy(seqtab.nochim, paste(path,"/16S/silva_nr_v138_train_set.fa.txt",sep=''), multithread=TRUE)
+taxa <- assignTaxonomy(seqtab.nochim, paste(path_reference,"/silva_nr_v138_train_set.fa.txt",sep=''), multithread=TRUE)
 toc()
 ```
 
@@ -312,7 +314,7 @@ The dada2 package also implements a method to make species level assignments bas
 
 ```{r}
 tic()
-taxa <- addSpecies(taxa, paste(path,"/16S/silva_species_assignment_v138.fa.txt",sep=''))
+taxa <- addSpecies(taxa, paste(path_reference,"/silva_species_assignment_v138.fa.txt",sep=''))
 toc()
 ```
 
@@ -330,7 +332,7 @@ head(taxa.print)
 
 ```{r}
 
-metadata = read.table(paste(path,"/16S/data/TUMI_16S_metadata.csv",sep = ''), header=T, sep=",", row.names = 1)
+metadata = read.table(paste(path_results,"/TUMI_16S_metadata.csv",sep = ''), header=T, sep=",", row.names = 1)
 metadata$Sample = rownames(metadata)
 metadata
 
