@@ -2,9 +2,10 @@
 
 path_to_cutadapt=/Users/mac9jc/Library/Python/3.8/bin/cutadapt
 path_to_bbmap=/Users/mac9jc/Documents/bbmap
-path_for_logs=/Users/mac9jc/Documents/work/TUMI/microbiome_course_2021/16S/results/logfiles
-path_for_input_data=/Users/mac9jc/Documents/work/TUMI/microbiome_course_2021/16S/data/sequence_data
-path_for_output_data=/Users/mac9jc/Documents/work/TUMI/microbiome_course_2021/16S/data/sequence_data/trimmed
+path_for_logs=/Users/mac9jc/Documents/work/TUMI/microbiome_course_2021/16S/logfiles
+path_for_input_data=/Users/mac9jc/Documents/work/TUMI/microbiome_course_2021/16S/sequence_data
+path_for_output_data=/Users/mac9jc/Documents/work/TUMI/microbiome_course_2021/16S/sequence_data/trimmed
+path_for_output_data2=/Users/mac9jc/Documents/work/TUMI/microbiome_course_2021/16S/trimmed_for_students
 
 files=$path_for_input_data/Mouse*.fastq.txt
 for f in $files; do
@@ -35,11 +36,8 @@ for f in $files; do
         ## primer trimming
         output_file3=$path_for_output_data/$f_without_num"1_PT.fq.gz"
         output_file4=$path_for_output_data/$f_without_num"2_PT.fq.gz"
-        output_file5=$path_for_output_data/$f_without_num"1_PT2.fq.gz"
-        output_file6=$path_for_output_data/$f_without_num"2_PT2.fq.gz"
-        #$path_to_cutadapt -a GTGCCAGCAGCCGCGGTAA...ATTAGATACCCTGGTAGTCC -A GGACTACCAGGGTATCTAAT...TTACCGCGGCTGCTGGCAC -o $output_file3 -p $output_file4 $output_file1 $output_file2 --cores=4 > $path_for_logs/"cutadapt_log_"$f_without_num"_2.txt"
-        #$path_to_cutadapt -a GGACTACCAGGGTATCTAAT...TTACCGCGGCTGCTGGCAC -A GTGCCAGCAGCCGCGGTAA...ATTAGATACCCTGGTAGTCC --minimum-length 50 -o $output_file5 -p $output_file6 $output_file3 $output_file4 --cores=4 > $path_for_logs/"cutadapt_log2_"$f_without_num"_2.txt"
-
+        output_file5=$path_for_output_data2/$f_without_num"1_PT2.fq.gz"
+        output_file6=$path_for_output_data2/$f_without_num"2_PT2.fq.gz"
 
         # to reverse complement, use https://www.bioinformatics.org/sms/rev_comp.html
         # wildcards at http://www.bioinformatics.org/sms/iupac.html - these will not RC well in the above link, so replace with Ns and do manually
@@ -50,11 +48,11 @@ for f in $files; do
         # F_RC = TTACCGCGGCKGCTGGCAC
         # R_RC = ATTAGAWACCCBDGTAGTCC
                 
-        $path_to_cutadapt -a GTGCCAGCMGCCGCGGTAA...ATTAGAWACCCBDGTAGTCC -A GGACTACHVGGGTWTCTAAT...TTACCGCGGCKGCTGGCAC --minimum-length 50 -o $output_file3 -p $output_file4 $output_file1 $output_file2 --cores=4 > $path_for_logs/"cutadapt_log2_"$f_without_num".txt"
-        $path_to_cutadapt -a GGACTACHVGGGTWTCTAAT...TTACCGCGGCKGCTGGCAC -A GTGCCAGCMGCCGCGGTAA...ATTAGAWACCCBDGTAGTCC --minimum-length 50 -o $output_file5 -p $output_file6 $output_file3 $output_file4 --cores=4 > $path_for_logs/"cutadapt_log2_"$f_without_num".txt"
+        $path_to_cutadapt -a GTGCCAGCMGCCGCGGTAA...ATTAGAWACCCBDGTAGTCC -A GGACTACHVGGGTWTCTAAT...TTACCGCGGCKGCTGGCAC --minimum-length 50 -o $output_file3 -p $output_file4 $output_file1 $output_file2 --cores=4 > $path_for_logs/"cutadapt_log2_"$f_without_num"1.txt"
+        $path_to_cutadapt -a GGACTACHVGGGTWTCTAAT...TTACCGCGGCKGCTGGCAC -A GTGCCAGCMGCCGCGGTAA...ATTAGAWACCCBDGTAGTCC --minimum-length 50 -o $output_file5 -p $output_file6 $output_file3 $output_file4 --cores=4 > $path_for_logs/"cutadapt_log2_"$f_without_num"2.txt"
 
-        #$path_to_cutadapt -a F...R_RC -A R...F_RC --minimum-length 50 -o $output_file3 -p $output_file4 $output_file1 $output_file2 --cores=4 > $path_for_logs/"cutadapt_log2_"$f_without_num".txt"
-        #$path_to_cutadapt -a R...F_RC -A F...R_RC --minimum-length 50 -o $output_file5 -p $output_file6 $output_file3 $output_file4 --cores=4 > $path_for_logs/"cutadapt_log2_"$f_without_num".txt"
+        #$path_to_cutadapt -a F...R_RC -A R...F_RC --minimum-length 50 -o $output_file3 -p $output_file4 $output_file1 $output_file2 --cores=4 > $path_for_logs/"cutadapt_log2_"$f_without_num"1.txt"
+        #$path_to_cutadapt -a R...F_RC -A F...R_RC --minimum-length 50 -o $output_file5 -p $output_file6 $output_file3 $output_file4 --cores=4 > $path_for_logs/"cutadapt_log2_"$f_without_num"2.txt"
 
     fi
 done
