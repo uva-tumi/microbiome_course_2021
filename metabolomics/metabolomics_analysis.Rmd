@@ -1,16 +1,14 @@
 ---
-title: "metabolomics_analysis"
+title: "TUMI Microbiome Course - Day 4 Metabolomics data analysis"
 author: "Maureen Carey"
 date: "4/5/2021"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup}
 knitr::opts_chunk$set(echo = TRUE)
-#knitr::opts_knit$set(root.dir = '~/Documents/work/TUMI/microbiome_course_2021/')
 
-#path = "/Users/mac9jc/Documents/work/TUMI/microbiome_course_2021"
-path = "/Users/maureencarey/local_documents/work/TUMI_efforts/microbiome_course_2021"
+path = "/Users/mac9jc/Documents/work/TUMI/microbiome_course_2021"
 
 knitr::opts_knit$set(root.dir = path)
 
@@ -20,9 +18,9 @@ knitr::opts_knit$set(root.dir = path)
 
 Maize seeds were inoculated with either water or *Pseudomonas fluorescens* in three separate experiments and allowed to germinate.  Seeds treated with the bacteria showed a difference in both root and shoot growth. The root tissues were extracted by grinding with liquid nitrogen and stored for future use in untargeted metabolomics experiment.  
 
-Our main aim for this experiment was to understand metabolomic changes in roots treated either with water or with suspension of *P.fluorescens*.
+Our main aim for this experiment was to understand metabolomic changes in roots treated either with water or with suspension of *P. fluorescens*.
 
-In this experiment, we ran 5 replicates of the mock treatment and 4 replicates of PF treated roots. A pooled quality control sample was created after the extraction by aliquoting 10 uL of metabolite extract from each sample for identification and quality control. Blank samples are 0.1% Formic acid in water. 
+In this experiment, we ran 5 replicates of the mock treatment and 4 replicates of *P. fluorescens*-treated roots (here on referred to as 'Pf'). A pooled quality control sample was created after the extraction by aliquoting 10 uL of metabolite extract from each sample for identification and quality control. Blank samples are 0.1% formic acid in water. 
 
 # Prep computational environment
 
@@ -38,7 +36,7 @@ library(mixOmics)
 
 # experiment metadata
 metadata = read_excel(paste(path,"/metabolomics/processed_metabolomics_data.xlsx",sep = ''), sheet = "sampleMetadata")
-# mass spec results (Note: Nishikant Wase's previous day of workshops generated this file from the raw spectra)
+# untargeted mass spec results (Note: Nishikant Wase's previous day of workshops generated this file from the raw spectra)
 df = read_excel(paste(path,"/metabolomics/processed_metabolomics_data.xlsx",sep = ''), sheet = "FilteredDataMatrix")
 
 ```
@@ -72,7 +70,7 @@ met_info = df[,!(colnames(df) %in% c("x01222021x_blank1","x01222021x_blank2",
 # identify sample groups
 grps = c("blank","blank",
          "Mock","Mock","Mock","Mock","Mock",
-         "PF","PF","PF","PF",
+         "Pf","Pf","Pf","Pf",
          "pooledQC","pooledQC","pooledQC","pooledQC")
 names(grps) = c("x01222021x_blank1","x01222021x_blank2",
                 "x01222021x_Met_Mock_R1","x01222021x_Met_Mock_R2",
@@ -109,7 +107,12 @@ On to our analyses!
 
 # Plot the data
 
-I always like to take a look at the data before I get started. This will clue you in to any potential challenges that may arise or any issues you need to correct (i.e. do you have sufficient N to detect a difference in sample groups? is there an outlier that you want to follow up on?)
+I always like to take a look at the data before I get started. This will clue you in to any potential challenges that may arise or any issues you need to correct, such as:
+
+1. Do you have sufficient N to detect a difference in sample groups? 
+2. Is there an outlier that you want to follow up on?
+3. Are the data formatted as you expected?
+4. Are the data normalized as you expected?
 
 ## Basic plotting
 
@@ -148,14 +151,17 @@ ggplot(data = df_to_plot, aes(x = group, y = metabolite_abundance, color = group
   
 ```
 
-By eye, it looks like there may not be a difference in `r interesting_met` between the infected (PF) group and the mock treated group, especially since this metabolite can be detected at similar levels in the blank sample. However, performing a statistical test would give us higher confidence in this conclusion. Here's one way we can do this:
+By eye, it looks like there may not be a difference in `r interesting_met` between the infected (Pf) group and the mock-treated group, especially since this metabolite can be detected at similar levels in the blank sample. However, performing a statistical test would give us higher confidence in this conclusion. Here's one way we can do this:
 
 ```{r}
 
 group_options = unique(df_to_plot$group)
 my_comparisons <- list(c(group_options[1], group_options[2]), 
-                       c(group_options[1], group_options[3]),
-                       c(group_options[2], group_options[3]))
+                       c(group_options[1], group_options[3]), 
+                       c(group_options[1], group_options[4]),
+                       c(group_options[2], group_options[3]),
+                       c(group_options[2], group_options[4]),
+                       c(group_options[3], group_options[4]))
 
 # remake previous figure
 p = ggplot(data = df_to_plot, aes(x = group, y = metabolite_abundance, color = group)) + 
@@ -167,13 +173,75 @@ p + stat_compare_means(comparisons = my_comparisons, size = 3, method = 't.test'
 
 ```
 
-A t-test confirms that there is no meaningful difference in `r interesting_met` in this study.
-
-FYI, the function we just used to perform a t.test ('stat_compare_means') does not do multiple testing corrections. We will discuss that later!
+A t-test confirms that there is no meaningful difference in `r interesting_met` in this study. FYI, the function we just used to perform a t.test ('stat_compare_means') does not do multiple testing corrections. We will discuss that later!
 
 ------
 
-Next, let's see look at a all of the metabolites at once. For example, we'd expect to see a similar range of metabolite abundances in all sample groups. A histogram would be useful for this purpose - can we generate it?
+As an aside, I want to talk a bit about plotting in R. The biggest strength of making figures programmatically (as opposed to Excel or Prism, or other approaches that don't use code) is that your figures are 100% reproducible and customizable and all errors are traceable. Making figures in Excel or Prism may be easier to start, but there is no documentation (i.e. code) of what you did. 
+
+`ggplot2`, the package used here, is just one way to do it and my personal favorite. Strengths of `ggplot2` specifically are that its relatively easy to make publication quality figures and many application-focused packages provide even-easier-to-use wrappers for ggplot plotting (think: PCA from Tuesday's workshop with `phyloseq`). My favorite feature of `ggplot2` is how you can layer on new information or plotting approaches. For example, in the plot above, we first specified what data would be used and the x- and y-axes here:
+
+```{r}
+
+p = ggplot(data = df_to_plot, aes(x = group, y = metabolite_abundance, color = group))
+p
+
+```
+
+Next, we told the program what type of plot to make (boxplot) so it plotted the data (specified in the first step) using this approach:
+
+```{r}
+
+p = p + geom_boxplot() 
+p
+
+```
+
+Third, we layered on points:
+
+```{r}
+
+p = p + geom_point(size = 4) 
+p
+
+```
+
+Fourth, we hide the legend:
+
+```{r}
+
+p = p + guides(color = F)
+p
+
+```
+
+Fifth, we added statistics:
+
+```{r}
+
+p = p + stat_compare_means(comparisons = my_comparisons, size = 3, method = 't.test')
+p
+
+```
+
+We could go even further, e.g. changing the color scheme, background, changing the axis labels, and adding a title:
+
+```{r}
+
+p = p + 
+  scale_color_manual(values = c("grey","blue","pink","green")) +
+  theme_bw() +
+  xlab(NULL) +
+  ylab("abundance") +
+  ggtitle(paste(interesting_met, "abundance with t.test", sep = " "))
+  
+p
+
+```
+
+------
+
+Next, let's look at all of the metabolites at once. For example, we'd expect to see a similar range of metabolite abundances in all sample groups. A histogram would be useful for this purpose.
 
 ```{r}
 
@@ -197,18 +265,27 @@ ggplot(data = df_to_plot, aes(x = abundance, fill = group)) +
 
 ```
 
-PS - Have questions about that 'pivot_longer' step? Check this out:^[from https://fromthebottomoftheheap.net/2019/10/25/pivoting-tidily/]
+------
+
+PS - Have questions about that 'pivot_longer' step? It's extremely useful but a little challenging to understand at first. Check this out:^[from https://fromthebottomoftheheap.net/2019/10/25/pivoting-tidily/]
 
 ![this is the concept behind pivoting - a way to restructure data for (sometimes) easier plotting](/Users/mac9jc/Documents/work/TUMI/microbiome_course_2021/metabolomics/tidyr-longer-wider.gif)
 
+------
+
 ## Principal component analysis
 
-One of my favorite tools to use before digging into specific analysis is principal component analysis. High dimensional data is often defined as datasets that have more variables than observations (e.g. more metabolites than samples). It is challenging to use many simple statistical methods with these datasets, so dimensionality reduction is a useful tool. I recommend you read [this paper](https://www.nature.com/articles/nrm2041) to better understand dimensionality reduction.
+One of my favorite tools to use before digging into specific analysis is principal component analysis. High dimensional data are often defined as datasets that have more variables than observations (e.g. more metabolites than samples). It is challenging to use many simple statistical methods with these datasets, so dimensionality reduction is a useful tool. I recommend you read [this paper](https://www.nature.com/articles/nrm2041) and [this paper](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1006907#sec006) to better understand dimensionality reduction.
 
-Let's define a couple functions that will make our PCA plot easier.
+The key feature of PCA to understand is that new variables (components) are created to summarize your existing variables; the aim is to summarize all of the variation in your dataset with fewer components than input variables. Each component is a linear function of your variables. An example 2 component PCA for a 3 variable dataset (AKT, JNK, & MK2) is shown in this figure^[Sorry for the blurry image quality, image from [this paper](https://www.nature.com/articles/nrm2041)]:
+
+![PCA overview](/Users/mac9jc/Documents/work/TUMI/microbiome_course_2021/metabolomics/PCA.png)
+
+Let's define a couple functions that will make our PCA plot easier. Long-winded explanations of each function will make more sense later!
 
 ```{r}
 
+# this extracts the variance explained by the FIRST component from the PCA results
 get_1st = function(input_pca) {
   # class(input_pca) = "prcomp"
   temp = summary(input_pca)
@@ -216,12 +293,19 @@ get_1st = function(input_pca) {
   return(round(temp2[2,1]*100, digits = 2))
 }
 
+# this extracts the variance explained by the SECOND component from the PCA results
 get_2nd = function(input_pca) {
+  # class(input_pca) = "prcomp"
   temp = summary(input_pca)
   temp2 = temp$importance
   return(round(temp2[2,2]*100, digits = 2))
 }
 
+# we will use the function prcomp in the preinstalled stats package for performing principal component analysis.
+# PCR requires centered and scaled data to be able to compare variables on different scales/ranges
+# i.e. some metabolites range from 0-1,000 others may range from 1,000,000-2,000,000
+# however, that function (prcomp) can center and scale your data to the MEAN, but we want to center and scale to the MEDIAN 
+# because using the median is less sensitive to outliers
 median_center_scale_data <- function(x) {
   # x is matrix or dataframe with rows as samples and columns as mets
   sd_x = apply(x,2,sd,na.rm=TRUE)
@@ -235,7 +319,7 @@ median_center_scale_data <- function(x) {
 
 ```
 
-Before performing PCA, the data needs to be normalized. Specifically, we need to perform 'feature' normalization by logging values and then centering and scaling them on a feature-by-feature basis (or, metabolite-by-metabolite basis).
+Before performing PCA, the data needs to be normalized. Specifically, we need to perform 'feature' normalization by logging values and then centering and scaling them on a feature-by-feature basis (a.k.a. metabolite-by-metabolite basis).
 
 ```{r}
 
@@ -264,15 +348,16 @@ df_to_plot = tidyr::pivot_longer(met_abund_w_grps, !grps, names_to = "metabolite
 
 ggplot(data = df_to_plot, aes(x = abundance, fill = grps)) +
   geom_histogram(bins = 100) + 
-  facet_wrap(~grps) + guides(fill = F)
+  facet_wrap(~grps) + guides(fill = F) +
+  xlab('scaled abundance')
 
 ```
 
-With the normalized data, we can perform PCA.
+With the centered and scaled data, we can perform PCA.
 
 ```{r}
 
-pca_data = prcomp(data_for_pca, center = F, scale. = F)
+pca_data = prcomp(data_for_pca, center = F, scale. = F) # Center and Scale = FALSE because we've done it already
 summary(pca_data)
 # get first two components
 data_plot = data.frame(pca_data$x[,c(1,2)]) 
@@ -295,6 +380,12 @@ ggplot(data = data_plot, aes(x = PC1, y = PC2))+
 
 You may also want to perform a statistical test, a PerMANOVA, to see if the clusters separate.
 
+A PerMANOVA, or permutational multivariate analysis of variance, is 
+
+> used to compare groups of objects and test the null hypothesis that the centroids and dispersion of the groups as defined by measure space are equivalent for all groups^[from Wikipedia and my favorite definition]
+
+Basically, a centroid is calculated for each group by finding a point that is as close to all of the points as possible (i.e. minimize the distance between all points and the centroid). If you were to then calculate the distance between every point on the plot, would the group members be closer to the centroid than the nongroup members? (Full disclosure, if the clusters don't look obviously different, I wouldn't over interpret a statistically significant difference in the PerMANOVA but I would hypothesize that non-linear approaches like random forest below would yield interesting results!)
+
 ```{r}
 
 t = adonis(data_plot ~ group, data = metadata, method = "eu") # PerMANOVA
@@ -306,7 +397,7 @@ Note: ever wonder what the difference between PCA and PCoA is? PCoA, or Principa
 
 # Removing our QC samples
 
-We are not actually interested in the metabolites detected in the blank or QC (quality control) samples. We need to remove these. However, as shown with `r interesting_met`, we don't want to consider the metabolites that were measured in the blank samples. 
+We are not actually interested in the metabolites detected in the blank or pooled QC (quality control) samples. We need to remove these. However, as shown with `r interesting_met`, we don't want to consider the metabolites that were measured in the blank samples. 
 
 Let's first find the mean of all metabolites detected in the blanks samples. Then we will subtract these abundances from all measured samples.
 
@@ -323,7 +414,7 @@ blanks = base::rowMeans(blanks)
 
 ```
 
-Now we can substract the mean blank value from the abundance of each sample.
+Now, we can subtract the mean blank value from the abundance of each sample.
 
 ```{r}
 
@@ -345,6 +436,8 @@ min_Val = min(met_abund_normalized_to_blanks[met_abund_normalized_to_blanks > 0]
 met_abund_normalized_to_blanks[met_abund_normalized_to_blanks <= 0] = min_Val/10000
 
 ```
+
+FYI this dataset (without the blanks and QC samples) will be used from here on out.
 
 Let's redo the PCA in light of these changes.
 
@@ -379,17 +472,72 @@ ggplot(data = data_plot, aes(x = PC1, y = PC2))+
 
 ```
 
-This dataset without the blanks and QC samples will be used from here on out.
+Principal component 2 (PC2) separates the two experimental groups - let's identify which metabolites contribute significantly to the variation explained in PC2. To do this, we will look at the component's loadings. Loadings are called `rotation` with the `prcomp` function and are more techinically known as the eigenvalues.
+
+```{r}
+
+loadings = pca_data$rotation
+PC2_loadings = loadings[,2] # second column for PC2
+most_important = tail(sort(PC2_loadings))
+names(most_important)
+
+```
+
+Again, we're focused on Alignment ID, so let's convert these to metabolite names:
+
+```{r}
+
+met_info %>% filter(`Alignment ID` %in% names(most_important)) %>% pull(`Metabolite name`)
+
+```
+
+Let's save these to compare to other variable selection techniques later.
+
+```{r}
+
+save_for_comparison_later_PCA = met_info %>% filter(`Alignment ID` %in% names(most_important)) %>% pull(`Metabolite name`)
+
+```
+
+We can also look to see how well the model summarizes variation overall. (This is called a 'scree plot' - I have no idea why.^[Update: I googled it and apparently "scree" describes a rocky cliff per [Wikipedia](https://en.wikipedia.org/wiki/Scree_plot)])
+
+```{r}
+
+# Variability of each PC
+var_comp = pca_data$sdev^2
+# Variance explained by each PC
+var_exp = var_comp / sum(var_comp)
+PC = as.factor(c(1:length(var_exp))) # as.factor makes a variable discrete - see discussion below in 'Perform machine learning with Random Forest Classification' section
+var_exp1 = data.frame(PC, var_exp)
+ggplot(as.data.frame(var_exp1), aes(x = PC, y = var_exp)) + 
+  geom_bar(stat = "identity") 
+
+```
+
+
+PC1 & PC2 describe much more variation than the later components, so a 2-dimensional PCA plot will likely capture most of the important differences in samples.
+
+```{r}
+
+var_exp2 = data.frame(PC, cumsum(var_exp))
+colnames(var_exp2)[2] = 'sum of variation explained'
+ggplot(as.data.frame(var_exp2), aes(x = PC, y = `sum of variation explained`)) + 
+  geom_bar(stat = "identity") 
+
+
+```
+
+However, we should keep in mind that these two components summarize less than 50% of the total variation.
 
 # More multivariate statistics
 
-Multivariate statistics come in several flavors - unsupervised and supervised. Unsupervised analyses do not require the input of any grouping data, whereas supervised analyses aim to distinguish members of groups (e.g. plants infected with PF from mock-infected plants). PCA, performed above, is an unsupervised analysis whereas random forest classification and partial least squares discriminant analysis are supervised techniques.
+Multivariate statistics come in several flavors - unsupervised and supervised. Unsupervised analyses do not require the input of any grouping data, whereas supervised analyses aim to distinguish members of groups (e.g. plants infected with Pf from mock-infected plants). PCA, performed above, is an unsupervised analysis whereas random forest classification and partial least squares discriminant analysis are supervised techniques.
 
 ## Perform machine learning with Random Forest Classification
 
-Random forest is an ensemble machine learning approach used to classify samples into particular groups (i.e. a classifier) or to predict a variable (i.e. regressor). For a classifier, many decision trees are build from subsets of data and internally validated with respect to the remaining dataset. With this approach, variables can be ranked by their effect of the classifer accuracy.
+Random forest is an ensemble machine learning approach used to classify samples into particular groups (i.e. a classifier) or to predict a continuous variable (i.e. regressor). Continuous variables are those that cannot be counted such as age or concentration. (The opposite of a continuous variable is a discrete variable such as colors [blue or red]. All continuous variables can be turned into discrete variable, e.g. age in years or binned concentration [high v. low].) A random forest is built up of many decision trees, each of which are constructed from subsets of data and internally validated with respect to the remaining dataset. With this approach, variables can be ranked by their effect of the classifer accuracy.
 
-![Random Forest analysis from Carey et al 2018](./RF.jpg)
+![Random Forest analysis from Carey et al 2018. (Ignore reference to Fig. 6A&B)](./RF.jpg)
 
 If you have sufficient N, it is wise to split the dataset into training and test sets. Even though random forest is an internally validated (i.e. it performs a training and test split for every tree), splitting your data into a training and test dataset increases your confidence in the quality of the model and minimizes overfitting. This can only be performed if you have sufficient N and would look something like this:
 
@@ -436,11 +584,9 @@ rf_classifier
 
 ```
 
-Ok, so the model is not great. We are seeing a high out-of-bag (OOB) error rate and the confusion matrix indicates that we did not often accurately predict sample group.
+Ok, so the model is not great. We are seeing a high out-of-bag (OOB) error rate and the confusion matrix indicates that we did not accurately predict sample group.
 
-Let's take a deeper look.
-
-Look at model performance on the testing dataset. How well does the model correctly label samples?
+Let's take a deeper look. How well does the model correctly label samples?
 
 ```{r}
 
@@ -450,7 +596,7 @@ predictions$observed = data_for_rf$group
 
 ```
 
-A ROC curve, or receiver operating characteristic curve, is a helpful tool to evaluate a random forest classifier and graphically shows the predictive ability of a classifier over a range of parameters. This is only useful for binary classifiers.
+A ROC curve, or receiver operating characteristic curve, is a helpful tool to evaluate a random forest classifier and graphically shows the predictive ability of a classifier over a range of parameters. (This is only useful for binary classifiers.)
 
 There is always a trade off between sensitivity and specificity, but at some thresholds, the model may perform particularly well. Just a reminder, sensitivity is the true positive rate:
 
@@ -464,9 +610,10 @@ $$
 \frac{TrueNegatives}{TrueNegatives + FalsePositives}
 $$
 
+Prep receiver operator characteristic (ROC) curve.
+
 ```{r}
 
-# prep receiver operator characteristic (ROC) curve
 ROC_val = roc(ifelse(predictions$observed=='PF', 'PF', 'Mock'), as.numeric(predictions$PF))
   
 ```
@@ -480,7 +627,7 @@ AUC_val
   
 ```
 
-Let's plot the ROC curve.
+Let's plot the ROC curve with a grey dotted line indicating that `AUC=0.5` performance we'd like to beat.
 
 ```{r}
 
@@ -492,11 +639,9 @@ ggroc(list(ROC_val), aes = "colour") +
         legend.title = element_blank()) +
   annotate("text", label = paste0("AUC = ",round(AUC_val, digits = 2)), x = .25, y = .27, color = "blue") 
 
-# use ggsave() to save figure!
-
 ```
 
-This model does not perform well, so we should not over interpret the results of this classifier. However, I want to walk you through some interpretive analyses. If the model was predictive, we might be interested in identifying which variables are important. 
+This model does not perform well, so we should not over interpret the results of this classifier. However, I want to walk you through some interpretive analyses. *If* the model was predictive, we might be interested in identifying which variables are important. 
 
 *MeanDecreaseAccuracy* (or the mean decrease in accuracy) is a metric of variable important and tells you the effect of removing a variable on model performance. *MeanDecreaseGini* (the mean decrease in Gini index) is another (more complex) metric of variable importance and quantifies the measure of 'node impurity.' This evaluates how well a variable splits your classification groups.
 
@@ -551,17 +696,28 @@ ggsave("/path/to/folder.png",width = 7,height = 3,units = "in",dpi = 300)
 
 ```
 
+Before moving on to our next multivariate/machine learning approach, let's compare the most important variables identified by random forest to those identified by the PCA. Which are in both lists?
 
-## Partial least squares discriminant analysis - NOT DONE
+```{r}
+
+save_for_comparison_later_RF = plot_df$`Metabolite name`
+save_for_comparison_later_RF[save_for_comparison_later_RF %in% save_for_comparison_later_PCA]
+
+```
+
+None? Why might this be?
+
+## Partial least squares discriminant analysis 
 
 Partial least squares discriminant analysis, or PLS-DA, is another supervised multivariate approach. PLS-DA can be thought of as a supervised version of PCA - both reduce the dimensions of large datasets using linear approaches. Like random forest however, PLS-DA considers class labels and can be used for feature selections (that is, identifying most important variables).
 
 For the sake of time, we won't get into the math behind PLS-DA here. However, [this paper](https://www.nature.com/articles/nrm2041) is also a great resource if you are interested!
 
+With random forest, it is strongly suggested to do a training and a test split of your data. However, for PLS-DA, it is essential to build your model on a subset of your data (a training set) and test it with a distinct subset of data (a test set). This is because PLS-DA is not internally validated like random forest - all of the provided data is used to build the model. Otherwise, it is easy to accidentally overinterpret an 'overfit' model, or start to interpret the biology of a highly accurate model that cannot be extrapolated to any new datasets. For this example, there is not sufficient N to do this so this is merely an example of the code used to run PLS-DA.
+
 Let's get started.
 
 ```{r}
-
 
 # transpose to have rows as samples and columns as mets
 data_for_plsda = as.data.frame(t(met_abund_normalized_to_blanks))
@@ -573,15 +729,16 @@ data_for_plsda$group = group
 
 
 ## PLS-DA function
-plsda.res = plsda(data_for_plsda_wo_grp, data_for_plsda$group, ncomp = 2, scale = TRUE,
-                   logratio="CLR") # where ncomp is the number of components wanted
+plsda.res = plsda(data_for_plsda_wo_grp, 
+                  data_for_plsda$group, 
+                  ncomp = 2, scale = TRUE, logratio="CLR") 
 ```
 
 Now let's plot the results:
 
 ```{r}
 
-plotIndiv(plsda.res)
+plotIndiv(plsda.res, legend = T, ellipse = T, title = 'PLS-DA for Pf-treated maize')
 
 ```
 
@@ -589,13 +746,38 @@ Like with PCA, we are interested in seeing if the sample groups (color coded her
 
 Note on percent variation summarized by each component: unlike PCA, the algorithm is not aiming to maximally summarize variance in the first two components. PLS-DA is aiming to split the samples into sample groups, which it does quite effectively here. The low percent variation on component 1 and 2, combined with the good separation of samples, indicates that there is a lot of variation in metabolite abundances unrelated to the sample groupings.
 
-```{r, eval = F}
+We can again evaluate our model using a ROC curve.
 
-set.seed(2021) # for reproducibility here, only when the `cpus' argument is not used
-perf.plsda <- perf(plsda.res, validation = "Mfold", folds = 4, 
-                  progressBar = FALSE, auc = TRUE, nrepeat = 10) 
-# perf.plsda.srbct$error.rate  # error rates
-plot(perf.plsda, col = color.mixo(1:3), sd = TRUE, legend.position = "horizontal")
+```{r}
+
+plsda_AUC_val = auroc(plsda.res)
 
 ```
 
+The accuracy of this model means that there is a perfect linear relationship between some metabolites and the class groups. This is a rare results and likely due to the lack of training/test split (a.k.a. we have built an 'overfit' model). To further interrogate this model, we might dive into the loadings and important variables to identify which metabolites are useful for predicting class membership.
+
+```{r}
+
+# get important variables
+var_imp = selectVar(plsda.res, comp = 1)$value
+# move Alignment ID from rownames to column
+var_imp$ID = rownames(var_imp)
+# sort and look at bottom for largest values
+MIV = tail(var_imp[order(var_imp$value.var),])
+MIV %>% pull(ID)
+
+```
+
+Like with the random forest, we will have to use `met_info` to name these important variables.
+
+Can you try comparing the important variables identified by PLS-DA to those identified by PCA and Random forest?
+
+## Comparing RF and PLS-DA... something is fishy
+
+Wait... so if we found out using PLA-DA that there are metabolites that nearly perfectly and linearly separate our sample groups, why didn't the random forest perform better? Why didn't the random forest classifier pick out those variables and correctly classify our samples?
+
+Random forest analysis is probably my favorite, most 'work horse' analysis, but has one MAJOR weakness and we've just described it. Random forest analysis is an ensemble approach - it leverages the 'wisdom of the crowd' by building many many trees (see Figure below) and taking the consensus of all. However, each tree is built from a subset of the data!
+
+![Random Forest analysis (again!)](./RF.jpg)
+
+If you have a perfectly discriminatory variable(s), every tree built without that variable will perform poorly and so the consensus of the forest will be lower performing than just using the discriminatory variable. Because this circumstance is relatively rare, ensemble approaches usually perform better than a single linear approach. However, it is good to be aware and plan for using multiple exploratory analyses.
